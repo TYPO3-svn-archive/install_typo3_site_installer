@@ -35,7 +35,7 @@
  * @author	Michael Stucki <mundaun@gmx.ch>
  */
 
-define('INCLUDE_DIR', 'includes/');
+define('INCLUDE_DIR', 'include/');
 
 // Include the base class and start
 require(INCLUDE_DIR.'class.site_installer.php');
