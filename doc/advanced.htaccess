@@ -30,6 +30,8 @@
 # to modify some lines, see the comments (search for 'httpd.conf')
 #
 # Using rewriting in your httpd.conf is much faster, btw.
+# See http://httpd.apache.org/docs/howto/htaccess.html#when for further
+# details.
 #
 # Questions about this file go to the matching Install mailing list,
 # see http://typo3.org/documentation/mailing-lists/

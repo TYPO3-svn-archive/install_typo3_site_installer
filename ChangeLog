@@ -1,28 +1,32 @@
+2004-12-02  Michael Stucki  <michael@typo3.org>
+
+ * Simply added an interesting URL to doc/advanced.htaccess
+
 2004-11-23  Christian Leutloff  <leutloff@debian.org>
 
-	* include/class.site_installer.php: set dryrun to false
-	* include/class.site_installer.php: bugs fixed:
-	setToOwnerGroupRecursive and setDirFileModeRecursive add trailing
-	slash if needed
-	* fix permissions is now expected to work fine
+ * include/class.site_installer.php: set dryrun to false
+ * include/class.site_installer.php: bugs fixed:
+   setToOwnerGroupRecursive and setDirFileModeRecursive add trailing
+   slash if needed
+ * fix permissions is now expected to work fine
 
 2004-11-13  Michael Stucki  <michael@typo3.org>
 
-	* Moved TODO file into doc/ directory
-	* Renamed _.htaccess to simple.htaccess
-	* Added advanced.htaccess
-	* Minor README updates
-	* Huge code cleanup in typo3-site-installer and class.site_installer.php
+ * Moved TODO file into doc/ directory
+ * Renamed _.htaccess to simple.htaccess
+ * Added advanced.htaccess
+ * Minor README updates
+ * Huge code cleanup in typo3-site-installer and class.site_installer.php
 
 2004-11-05  Christian Leutloff  <leutloff@debian.org>
 
-	* Improved handling of command line arguments
-	* Moved usage info from class to calling script
+ * Improved handling of command line arguments
+ * Moved usage info from class to calling script
 
 2004-08-29  Michael Stucki  <michael@typo3.org>
 
-	* Changed the file structured, starting to work on it
+ * Changed the file structured, starting to work on it
 
 2004-08-13  Michael Stucki  <michael@typo3.org>
 
-	* Initial upload
+ * Initial upload
