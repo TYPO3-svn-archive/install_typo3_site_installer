@@ -1,3 +1,7 @@
+2004-11-04  Christian Leutloff  <leutloff@debian.org>
+
+	* moved usage info from class to calling script
+
 2004-08-29  Michael Stucki  <mundaun@gmx.ch>
 
 	* Changed the file structured, starting to work on it

@@ -1,5 +1,5 @@
-#!/bin/sh
-<?php
+#!/usr/bin/php
+<?php                                     // -*- php -*-
 /***************************************************************
 *  Copyright notice
 *
@@ -36,11 +36,44 @@
  */
 
 define('INCLUDE_DIR', 'include/');
+define('DEFAULTUSER', 'www-data');
+define('DEFAULTGROUP', 'www-data');
 
 // Include the base class and start
 require(INCLUDE_DIR.'class.site_installer.php');
 
+
+////////////
+// Display usage info
+//////
+function show_usage()
+{
+    echo "\n";
+    echo "typo3-site-installer helps to install fresh TYPO3 sites \n" ;
+    echo "\n";
+    echo "  Usage: typo3-site-installer [OPTIONS]\n" ;
+    echo "\n";
+    /*
+    echo "  General options:\n" ;
+    echo "    -d, --destination=DIR      Specify the target directory for your new site\n" ;
+    echo "    -a, --always-latest        If set, the symlink typo3_src will point to\n" ;
+    echo "                               /var/lib/typo3/latest\n" ;
+    echo "\n";
+    */
+    echo "  Options you can only use as root:\n" ;
+    echo "    -f, --fix-permissions      Fix all permissions\n" ;
+    echo "    -g, --group=GROUP          Change group ownership to this group (Default: ".DEFAULTGROUP.")\n" ;
+    echo "    -u, --user=USER            Change user ownership (Default: ".DEFAULTUSER.")\n" ;
+    echo "\n";
+} 
+
+
+show_usage();
+
+
+
+
 $siteInstaller = new site_installer;
-$siteInstaller->startUp();
+$siteInstaller->startUpCheck();
 
 ?>

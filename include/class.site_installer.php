@@ -30,98 +30,82 @@
  * $Id$
  *
  * @author	 Michael Stucki <mundaun@gmx.ch>
+ * @author	 Christian Leutloff <leutloff@debian.org>
+ *
+ * Scroll to the end to find the start of this script!
  */
-class site_installer {
-	/**
-	 * Define some values
-	 */
-	var $bla....
-###################
-#
-# to be continued...
-#
-###################
-	GROUP="www-data" # name of the group that runs the Apache webserver
-# TODO: We could also grep through httpd.conf in case that this name was changed:
-# GROUP=`cat /etc/apache/httpd.conf | grep "^[Gg]roup\ [^\ ]*$" | awk '{ print $NF; }'`
 
-FIX_PERMISSIONS=0
-ALWAYS_LATEST=0
-
-######
-# Scroll to the end to find the start of this script!
-###
-
-######
-# Check on startup
-###
-start_check()
+function is_symlink() 
 {
-    ERROR=0
+    return true;
+}
 
-    # We always use /var/lib/typo3/latest to get the version number that will be used for installation
-    # Check if /var/lib/typo3/latest is a symlink
-    if [ -L /var/lib/typo3/latest ]; then
 
-        # Get the current version which will be used by default
-        TYPO3_SOURCE=`ls -l /var/lib/typo3/latest | awk '{ print $NF; }'`
+class site_installer
+{
+    /**
+     * Define some values
+     */
+    var $GROUP="www-data"; // name of the group that runs the Apache webserver
 
-        # Maybe /var/lib/typo3/latest does not point to the absolute path
-        if [ ! -e $TYPO3_SOURCE ]; then TYPO3_SOURCE=/var/lib/typo3/$TYPO3_SOURCE; fi
+    // TODO: We could also grep through httpd.conf in case that this name was changed
+    //GROUP=`cat /etc/apache/httpd.conf | grep "^[Gg]roup\ [^\ ]*$" | awk '{ print $NF; }'`
+       
+    var $FIX_PERMISSIONS=0;
+    var $ALWAYS_LATEST=0;
+    
+/**
+ * Check on startup
+ */
+function startUpCheck()
+{
+    $ERROR=0;
+    
 
-        # If the updated still doesn't exist: Abort.
-        if [ ! -e $TYPO3_SOURCE ]; then ERROR=1; fi
+    // We always use /var/lib/typo3/latest to get the version number that will be used for installation
+    // Check if /var/lib/typo3/latest is a symlink
+    if (is_symlink('/var/lib/typo3/latest'))
+    {
+        // Get the current version which will be used by default
+        $TYPO3_SOURCE=`ls -l /var/lib/typo3/latest | awk '{ print $NF; }'`;
+        
 
+        // Maybe /var/lib/typo3/latest does not point to the absolute path
+        if ( ! file_exists($TYPO3_SOURCE))
+            $TYPO3_SOURCE='/var/lib/typo3/'.$TYPO3_SOURCE;
+
+        // If the updated still doesn't exist: Abort.
+        if ( ! file_exists($TYPO3_SOURCE))
+            $ERROR=1; 
+    }
     else
+    {
+        // It seems that /var/lib/typo3/latest is not a correct symlink: Abort.
+        $ERROR=1;        
+    }
+    
 
-        # It seems that /var/lib/typo3/latest is not a correct symlink: Abort.
-        ERROR=1
-
-    fi
-
-    if [ $ERROR == 1 ]; then
-
-        echo
-        echo "/var/lib/typo3/latest is wrong or does not exist at all!"
-        echo
-        echo "Aborted."
-        exit 1
-
-    fi
-
-    ERROR=0
+    if ( $ERROR == 1 )
+    {
+        echo "\n";
+        echo "/var/lib/typo3/latest is wrong or does not exist at all!\n" ;
+        echo "\n";
+        echo "Aborted.\n" ;
+        exit (1);   
+    }
 }
 
-######
-# Display usage info
-###
-show_usage()
-{
-    echo "typo3-site-installer, a simple installer for fresh TYPO3 sites"
-    echo
-    echo "  Usage: typo3-site-installer [OPTIONS]"
-    echo
-    echo "  General options:"
-    echo "    -d, --destination=DIR      Specify the target directory for your new site"
-    echo "    -a, --always-latest        If set, the symlink typo3_src will point to"
-    echo "                               /var/lib/typo3/latest"
-    echo
-    echo "  Options you can only use as root:"
-    echo "    -f, --fix-permissions      Fix all permissions"
-    echo "    -g, --group=GROUP          Change group ownership to this group"
-    echo
-}
 
-######
-# Install a clean dummysite
-###
-install_site()
+////////////
+// Install a clean dummysite
+//////
+function install_site()
 {
-
-    # Test if directory is writable
+/*
+    // Test if directory is writable
     if [ -w `dirname $DESTINATION` ]; then
 
-        # Test if target directory already exists (may also be a file)
+        // Test if target directory already exists (may also be a file)
         if [ -e $DESTINATION ]; then
 
             echo
@@ -134,7 +118,7 @@ install_site()
 
         fi
 
-        # Create the directory structure
+        // Create the directory structure
         mkdir $DESTINATION
         mkdir $DESTINATION/fileadmin
         mkdir $DESTINATION/fileadmin/_temp_
@@ -149,7 +133,7 @@ install_site()
         mkdir $DESTINATION/uploads/pics
         mkdir $DESTINATION/uploads/tf
 
-        # Create index.html for directories that should not be shown
+        // Create index.html for directories that should not be shown
         cat <<EOF > $DESTINATION/uploads/index.html
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
 <HTML>
@@ -160,23 +144,23 @@ install_site()
 </HTML>
 EOF
 
-        # Create a symlink to this file in every subdirectory
+        // Create a symlink to this file in every subdirectory
         cp $DESTINATION/uploads/index.html $DESTINATION/uploads/dmail_att/
         cp $DESTINATION/uploads/index.html $DESTINATION/uploads/media/
         cp $DESTINATION/uploads/index.html $DESTINATION/uploads/pics/
         cp $DESTINATION/uploads/index.html $DESTINATION/uploads/tf/
         cp $DESTINATION/uploads/index.html $DESTINATION/typo3conf/
 
-        # Copy some other files from /usr/share/doc/typo3-site-installer
+        // Copy some other files from /usr/share/doc/typo3-site-installer
         cp /usr/share/doc/typo3-site-installer/_.htaccess $DESTINATION/
         cp /usr/share/doc/typo3-site-installer/clear.gif $DESTINATION/
         gunzip -c /usr/share/doc/typo3-site-installer/changelog.gz > $DESTINATION/changelog
         gunzip -c /usr/share/doc/typo3-site-installer/database.sql.gz > $DESTINATION/typo3conf/database.sql
 
-        # Copy the localconf.php into typo3conf/
+        // Copy the localconf.php into typo3conf/
         cp /usr/share/doc/typo3-base/examples/localconf.php $DESTINATION/typo3conf/
 
-        # Create a few symlinks
+        // Create a few symlinks
         ln -s $TYPO3_SOURCE $DESTINATION/typo3_src
         ln -s typo3_src/tslib $DESTINATION/
         ln -s typo3_src/t3lib $DESTINATION/
@@ -185,7 +169,7 @@ EOF
         ln -s tslib/showpic.php $DESTINATION/
         ln -s tslib/index_ts.php $DESTINATION/index.php
 
-        # Fix the permissions
+        // Fix the permissions
         fix_permissions
 
     else
@@ -201,54 +185,53 @@ EOF
         exit 1
 
     fi
+*/
 }
 
 
-######
-# Fix some permissions
-###
-fix_permissions()
+////////////
+// Fix some permissions
+//////
+function fix_permissions()
 {
-
-    ERROR=0
-    if [ ! -d $DESTINATION ]; then
-
-        echo
-        echo "=============================================================================="
-        echo "Error: Directory does not exist!"
-        ERROR=1
-
-    elif [ ! -e $DESTINATION/index.php ]; then
-
-        echo
-        echo "=============================================================================="
-        echo "Error: Site seems to be incorrect!"
-        ERROR=1
-
-    fi
-
-    if [ $ERROR == 1 ]; then
-
-        echo -n "The directory you tried to use was:"
-        echo $DESTINATION
-        echo
-        echo "Make sure you create the directory structure with this script."
-        echo "Use this command to do so:"
-        echo "  typo3-site-installer -d=$DESTINATION"
-        echo
-        echo "If you think this is a bug, please contact the author."
-        echo "=============================================================================="
-        echo
-        echo "Aborted."
-        exit 1
-
-    fi
-
-    ERROR=0
-
-    if [ $USER == 'root' ]; then
-
-        # www-data is the group owner of the Apache process
+    $ERROR=0 ;
+    if ( ! is_dir($DESTINATION))
+    {
+        echo "\n";
+        echo "==============================================================================\n";
+        echo "Error: Directory does not exist!\n";
+        $ERROR=1 ;
+    }
+    else
+    {
+        if ( ! file_exists( $DESTINATION.'/index.php' ))
+        {
+            echo "\n";
+            echo "==============================================================================\n";
+            echo "Error: Site seems to be incorrect!";
+            $ERROR=1;
+        }
+    }
+    if ( $ERROR == 1 )
+    {
+        echo "The directory you tried to use was:\n";
+        echo $DESTINATION."\n";
+        echo "\n";
+        echo "Make sure you create the directory structure with this script.\n";
+        echo "Use this command to do so:\n";
+        echo "  typo3-site-installer -d=$DESTINATION\n";
+        echo "\n";
+        echo "If you think this is a bug, please contact the author.\n";
+        echo "==============================================================================\n";
+        echo "\n";
+        echo "Aborted.\n";
+        exit (1);
+    }
+    
+    if ( $USER == 'root' )
+    {
+        // www-data is the group owner of the Apache process
+        /*
         chgrp -R $GROUP $DESTINATION
         find $DESTINATION -type f -exec chmod 640 {} \;
         find $DESTINATION -type d -exec chmod 750 {} \;
@@ -258,69 +241,72 @@ fix_permissions()
         chmod -R g+w $DESTINATION/typo3temp
         chmod -R g+w $DESTINATION/uploads
         chmod 600 $DESTINATION/changelog
-
+        */
+    }
     else
-
+    {
+        /*
         find $DESTINATION -type f -exec chmod 666 {} \;
         find $DESTINATION -type d -exec chmod 777 {} \;
         chmod 600 $DESTINATION/changelog
+        */
+        echo "\n";
+        echo "==============================================================================\n";
+        echo "You are not logged in as root.\n";
+        echo "I was unable to change the group ownership to ".$GROUP."\n";
+        echo "\n";
+        echo "I have therefore changed the permissions to minimal security (everybody can\n";
+        echo "read / write).\n";
+        echo "\n";
+        echo "Though your site will be working with these settings, you are strongly\n";
+        echo "encouraged to fix that problem by running this script again but with root\n";
+        echo "permissions and using the option '--fix-permissions':\n";
+        echo "\n";
+        echo "Use this command to do so:\n";
+        echo "  typo3-site-installer -d $DESTINATION --fix-permissions\n";
+    }
+    
 
-        echo
-        echo "=============================================================================="
-        echo "You are not logged in as root."
-        echo -n "I was unable to change the group ownership to"
-        echo $GROUP
-        echo
-        echo "I have therefore changed the permissions to minimal security (everybody can"
-        echo "read / write)."
-        echo
-        echo "Though your site will be working with these settings, you are strongly"
-        echo "encouraged to fix that problem by running this script again but with root"
-        echo "permissions and using the option '--fix-permissions':"
-        echo
-        echo "Use this command to do so:"
-        echo "  typo3-site-installer -d $DESTINATION --fix-permissions"
-    fi
-
-    echo
-    echo "=============================================================================="
-    echo "Finished. But there is still something to do for you:"
-    echo
-    echo "First: Make sure that "$DESTINATION" is accessable through your webserver."
-    echo "(Move this directory to /var/www if you don't know what to do.)"
-    echo
-    echo
-    echo "Next, follow these steps:"
-    echo
-    echo "  * In $TYPO3_SOURCE/typo3/install/index.php:"
-    echo "    Comment out line 40 (the 'die()' call)"
-    echo "  * Point your browser to the location you just created and complete the setup"
-    echo "  * Remove the comment from above"
-    echo
-    echo "Note: the image settings should already be optimized for Debian Woody."
-    echo
-    echo "Make sure to read the README file for later install instructions."
-    echo "=============================================================================="
-    echo
-    echo "Successfully done."
+    echo "\n";
+    echo "==============================================================================\n";
+    echo "Finished. But there is still something to do for you:\n";
+    echo "\n";
+    echo "First: Make sure that ".$DESTINATION." is accessable through your webserver.\n";
+    echo "(Move this directory to /var/www if you don't know what to do.)\n";
+    echo "\n";
+    echo "\n";
+    echo "Next, follow these steps:\n";
+    echo "\n";
+    echo "  * In $TYPO3_SOURCE/typo3/install/index.php:\n";
+    echo "    Comment out line 40 (the 'die()' call)\n";
+    echo "  * Point your browser to the location you just created and complete the setup\n";
+    echo "  * Remove the comment from above\n";
+    echo "\n";
+    echo "Note: the image settings should already be optimized for Debian Woody.\n";
+    echo "\n";
+    echo "Make sure to read the README file for later install instructions.\n";
+    echo "==============================================================================\n";
+    echo "\n";
+    echo "Successfully done.\n";
 }
 
+/*
+//////////
+// Main control
+//////
 
-#####
-# Main control
-###
+start_check();
 
-start_check
 
-# Show info if no parameters were specified
-if [ $# -lt 1 ]; then show_usage; exit 1; fi
+// Show info if no parameters were specified
+if [ $ -lt 1 ]; then show_usage; exit 1; fi
 
-# Read all parameters
-while [ $# -gt 0 ]; do
+// Read all parameters
+while [ $// -gt 0 ]; do
     case "$1" in
 
         -d|-d=*|--destination|--destination=*)
-            # Example: --destination /abc/def/geh
+            // Example: --destination /abc/def/geh
             if [ $1 == -d -o $1 == --destination ] && [ ! -z "$2" ]; then
 
                 DESTINATION="$2"
@@ -328,10 +314,10 @@ while [ $# -gt 0 ]; do
 
             elif [ -z `echo $1 | sed -e 's/\(-d\|--destination\)=\(.\+\)//'` ]; then
 
-                # Example: --destination=/abc/def/geh
+                // Example: --destination=/abc/def/geh
                 DESTINATION=`echo "$1" | awk -F= '{ print $2; }'`
 
-                # proceed if $DESTINATION is non-zero
+                // proceed if $DESTINATION is non-zero
                 if [ ! -z $DESTINATION ]; then shift 1
                 else show_usage; exit 1
                 fi
@@ -343,21 +329,21 @@ while [ $# -gt 0 ]; do
 
             fi
 
-            # Convert disallowed characters to underscores
+            // Convert disallowed characters to underscores
             DESTINATION=`echo $DESTINATION | sed -e 's/[^-\~_./a-zA-Z0-9]\+/_/g'`
           ;;
 
         -f|--fix-permission|--fix-permissions)
-            # We only want to fix the permissions of an existing site
+            // We only want to fix the permissions of an existing site
             FIX_PERMISSIONS=1
             shift
           ;;
 
         -g|-g=*|--group|--group=*)
-            # Group was manually specified; only act if we are root.
+            // Group was manually specified; only act if we are root.
             if [ $USER == 'root' ]; then
 
-                # $GROUP should normally be the group owner of the Apache process
+                // $GROUP should normally be the group owner of the Apache process
                 if [ $1 == -g -o $1 == --group ] && [ ! -z "$2" ]; then
 
                     GROUP="$2"
@@ -365,10 +351,10 @@ while [ $# -gt 0 ]; do
 
                 elif [ -z `echo $1 | sed -e 's/\(-g\|--group\)=\(.\+\)//'` ]; then
 
-                    # Example: --destination=/abc/def/geh
+                    // Example: --destination=/abc/def/geh
                     GROUP=`echo "$1" | awk -F= '{ print $2; }'`
 
-                    # proceed if $DESTINATION is non-zero
+                    // proceed if $DESTINATION is non-zero
                     if [ ! -z $GROUP ]; then shift 1
                     else show_usage; exit 1
                     fi
@@ -392,13 +378,13 @@ while [ $# -gt 0 ]; do
           ;;
 
         -a|--always-latest)
-            # Point typo3_src to /var/lib/typo3/latest
+            // Point typo3_src to /var/lib/typo3/latest
             if [ $ALWAYS_LATEST == 1 ]; then TYPO3_SOURCE=/var/lib/typo3/latest; fi
             shift
           ;;
 
         *)
-            # something went wrong
+            // something went wrong
             show_usage
             exit 1
           ;;
@@ -406,20 +392,23 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# see what we have to do
+// see what we have to do
 if [ $FIX_PERMISSIONS == 1 ]; then fix_permissions
 elif [ ! -z $DESTINATION ]; then install_site
 fi
 
 exit 0
+*/
 
-#########################
+//////////////////////////////////////////////////
 
 /**
  * Todo: Run the site fetcher
- */
+ *
 require(INCLUDE_DIR.'class.site_fetcher.php');
 $fetcher = new site_fetcher;
 $res = $fetcher->fetch_site('3.6.2', 'dummy');
+*/
+}
 
 ?>
