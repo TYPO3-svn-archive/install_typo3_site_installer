@@ -1,19 +1,6 @@
 TYPO3 site installer
 ---------------------
 
-!!! IMPORTANT NOTE !!!
-This is the very first upload of this script.
-It is based on the former Debian package "typo3-site-installer" written by
-Michael Stucki <mundaun@gmx.ch>. The script is not usable yet but should
-give an idea of what this will become.
-
-Help is very welcome but note that I plan to rewrite this script completely
-in the next few days.
-
-- michael
-
-===
-
 This package does contain the TYPO3 site installer for Debian.
 
 How to get started

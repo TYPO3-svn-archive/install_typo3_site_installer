@@ -3,7 +3,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2004 Michael Stucki (mundaun@gmx.ch)
+*  (c) 2004 Michael Stucki (mundaun@gmx.ch), Christian Leutloff <leutloff@debian.org>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -31,49 +31,170 @@
  *
  * $Id$
  *
+ * @author	Christian Leutloff <leutloff@debian.org>
  * @author	Sven Wilhelm <wilhelm@icecrash.com>
  * @author	Michael Stucki <mundaun@gmx.ch>
  */
+$debug = 1;
+//$debug = 0;
+if ($debug > 0)
+   error_reporting(E_ALL);
+else
+   error_reporting(E_NONE);
 
-define('INCLUDE_DIR', 'include/');
-define('DEFAULTUSER', 'www-data');
-define('DEFAULTGROUP', 'www-data');
+require_once('Console/Getopt.php');
+
+if (file_exists('include/class.site_installer.php'))
+{
+    $INCLUDE_DIR = 'include/';
+}
+else
+{
+    $INCLUDE_DIR = '/usr/share/typo3/typo3-site-installer/';
+}
+
 
 // Include the base class and start
-require(INCLUDE_DIR.'class.site_installer.php');
+require($INCLUDE_DIR.'class.site_installer.php');
 
 
-////////////
-// Display usage info
-//////
-function show_usage()
+/**
+ * Display version info
+ */
+function printVersion()
 {
+    global $debug;
+    
+    echo "\n";
+    echo 'typo3-site-installer, v0.1, 06.11.04' ;
+    if ($debug > 0)
+        echo ", Debugging enabled";
+    echo "\n";
+}
+
+/**
+ * Display usage info
+ */
+function printUsage()
+{
+    global $argv;
+    
     echo "\n";
     echo "typo3-site-installer helps to install fresh TYPO3 sites \n" ;
     echo "\n";
-    echo "  Usage: typo3-site-installer [OPTIONS]\n" ;
+    echo "  Usage: $argv[0] [OPTIONS]\n" ;
     echo "\n";
-    /*
     echo "  General options:\n" ;
-    echo "    -d, --destination=DIR      Specify the target directory for your new site\n" ;
+    echo "    -d, --destination <DIR>    Specify the target directory".
+       " for your new site (Default: ".DEFAULT_DESTINATION_DIR.")\n" ;
+    echo "    -s, --t3source <DIR>       typo3 source installation directory".
+       " (Default: ".DEFAULT_TYPO3SOURCE_DIR.")\n" ;
+    /* not supported at the moment
     echo "    -a, --always-latest        If set, the symlink typo3_src will point to\n" ;
     echo "                               /var/lib/typo3/latest\n" ;
-    echo "\n";
     */
+    echo "    -r, --root <DIR>           root directory (Default: '/')","\n" ;
+    echo "    -n, --dry-run [false]      dry-run (Default: true)","\n" ;
+    echo '    -h, -?, --help             Display this help',"\n" ;
+    echo '    -v, --version              Display version of this script',"\n" ;
+    echo "\n";
     echo "  Options you can only use as root:\n" ;
     echo "    -f, --fix-permissions      Fix all permissions\n" ;
-    echo "    -g, --group=GROUP          Change group ownership to this group (Default: ".DEFAULTGROUP.")\n" ;
-    echo "    -u, --user=USER            Change user ownership (Default: ".DEFAULTUSER.")\n" ;
+    echo "    -g, --group <GROUP>        Change group ownership to this group (Default: ".
+        DEFAULT_WWW_GROUP.")\n" ;
+    echo "    -u, --user <USER>          Change user ownership (Default: ".
+        DEFAULT_WWW_USER.")\n" ;
     echo "\n";
 } 
 
+/**
+ * parse the command line
+ */
+function parseOptions($theSiteInstaller)
+{
+    global $debug;
+    
+    $shortoptions='ad:fg:hnr:s:u:v?';
+    $longoptions=array("always-latest", "destination=", "dry-run", "dry-run=",
+                       "fix-permissions",
+                       "group=", "root=", "t3source=", "user=",
+                       "help", "version");
 
-show_usage();
+    $con  = new Console_Getopt;
+    $args = $con->readPHPArgv();
+    array_shift($args);
+    if (($options = $con->getopt($args, $shortoptions, $longoptions)) === false)
+    {
+        echo 'wrong parameters',"\n";
+            printVersion();
+            printUsage();
+            exit(); 
+        }       
+    if ($debug > 1) print_r($options[0]);
 
+    foreach ($options[0] as $opt)
+    {
+        if ($debug > 1) print_r($opt);
+        if (($opt[0] == 'h') || ($opt[0] == '?') || ($opt[0] == '--help'))
+        { 
+            printVersion();
+            printUsage();
+            exit(); 
+        }
+        if (($opt[0] == 'v') || ($opt[0] == '--version'))
+        { 
+            printVersion();
+            exit(); 
+        }
+        if (($opt[0] == 'a') || ($opt[0] == '--always-latest'))
+        { 
+            $theSiteInstaller->setAlwaysLatest(true);
+        }
+        if (($opt[0] == 'd') || ($opt[0] == '--destination'))
+        { 
+            $theSiteInstaller->setDestinationDir($opt[1]);
+        }
+        if (($opt[0] == 'f') || ($opt[0] == '--fix-permissions'))
+        { 
+            $theSiteInstaller->fixPermissions(true);
+        }
+        if (($opt[0] == 'g') || ($opt[0] == '--group'))
+        { 
+            $theSiteInstaller->setWWWGroup($opt[1]);
+        }
+        if ($opt[0] == 'n')
+        { 
+            $theSiteInstaller->setDryRun(true);
+        }
+        if ($opt[0] == '--dry-run')
+        {
+            if (empty($opt[1]) || ($opt[1] !== 'false'))
+                $theSiteInstaller->setDryRun(true);
+            else
+                $theSiteInstaller->setDryRun(false);
+        }
+        if (($opt[0] == 'r') || ($opt[0] == '--root'))
+        {
+            $theSiteInstaller->setRootDir($opt[1]);
+        }
+        if (($opt[0] == 's') || ($opt[0] == '--t3source'))
+        { 
+            $theSiteInstaller->setSourceDir($opt[1]);
+        }
+        if (($opt[0] == 'u') || ($opt[0] == '--user'))
+        { 
+            $theSiteInstaller->setWWWUser($opt[1]);
+        }
+    }
+}
 
 
 
 $siteInstaller = new site_installer;
+
+parseOptions(&$siteInstaller);
+
 $siteInstaller->startUpCheck();
+$siteInstaller->doActions();
 
 ?>

@@ -1,0 +1,19 @@
+Source: typo3-site-installer
+Section: web
+Priority: optional
+Maintainer: Christian Leutloff <leutloff@debian.org>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.1
+
+Package: typo3-site-installer
+Architecture: all
+Depends: php4-cli
+Suggests: typo3 | typo3-frontend, typo3-db-dummy | typo3-db-quickstart | typo3-db-testsite
+Description: Managing initial Typo3 installations
+ This package contains a small PHP script that setup an initial Typo3
+ site for you.
+ .
+ Typo3 is a Web content management system.
+ .
+ Authors:  Michael Stucki, Christian Leutloff
+ Homepage: http://www.mstucki.net/
