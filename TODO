@@ -1,10 +1,16 @@
 TODO
 ====
 
-- build database structure
+- Adapt man page to new options
 
-- load the required SQL from typo3.org (if Debian package is not
-  provided)
+- Port script to Win32 through an extension to the file system
+  operations so that they work operation system independent
+
+- Reenable the site installation feature: Move the remaining parts of
+  a BASH script to PHP load the required SQL from typo3.org (if Debian
+  package is not provided)
+
+- Remove database.sql (the version in the site package should be used, instead)
 
 - check for appropriate apache and php configuration  
 
