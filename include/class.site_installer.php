@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2004 Michael Stucki (mundaun@gmx.ch)
+*  (c) 2004 Michael Stucki (michael@typo3.org)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -29,7 +29,7 @@
  *
  * $Id$
  *
- * @author	 Michael Stucki <mundaun@gmx.ch>
+ * @author	 Michael Stucki <michael@typo3.org>
  * @author	 Christian Leutloff <leutloff@debian.org>
  *
  * Scroll to the end to find the start of this script!
@@ -48,261 +48,195 @@ define('DEFAULT_WWW_GROUP', 'www-data');
 /**
  * helper function: ensure that dirs ends with a slach
  */
-function getDirWithFinalSlash($dir)
-{
-    
-    if (substr($dir, strlen($dir)-1, strlen($dir)) === '/')
-    {
-        return $dir;
-    }
-    return $dir.'/';
+function getDirWithFinalSlash($dir)	{
+	if (substr($dir, strlen($dir)-1, strlen($dir)) === '/')	return $dir;
+	return $dir.'/';
 }
 
 
-class site_installer
-{
-    // TODO: We could also grep through httpd.conf in case that this name was changed
-    //wwwgroup=`cat /etc/apache/httpd.conf | grep "^[Gg]roup\ [^\ ]*$" | awk '{ print $NF; }'`
-       
-    /**
-     * root directory used to operate -another than the standard / is
-     * usefull in chroot environments and to test different directory
-     * szenarios
-     */
-    var $rootDir = "";
-    /**
-     * directory with the typo3 source 
-     */
-    var $typo3SourceDir  = "";
-    /**
-     * web directory where typo3 will be installed and used
-     */
-    var $destinationDir = "";
-    /**
-     * if true, permissions and links will be modified
-     */
-    var $fixPermissions = false;
-    /**
-     * if true, symlink to typo3_src will be changed to use latest
-     * available typo3_src
-     */
-    var $useAlwaysLatest = false;
-    /**
-     * name of the user that runs the Apache webserver
-     */
-    var $wwwuser = DEFAULT_WWW_USER;
-    /**
-     * name of the group that runs the Apache webserver
-     */
-    var $wwwgroup = DEFAULT_WWW_GROUP;
-    /**
-     * count errors during startup
-     */
-    var $errors = 0;
-    /**
-     * display message if errors are detected
-     */
-    var $errmsg = "";
-    /**
-     * dryrun shows the actions that would be done
-     */
-    var $dryrun = true;   
+class site_installer	{
 
-    
-    function setAlwaysLatest($value)
-    {    
-        $this->useAlwaysLatest=$value;
-    }
-    
-    function setWWWUser($value)
-    {    
-        $this->wwwuser = $value;
-    }
-    
-    function setWWWGroup($value)
-    {    
-        $this->wwwgroup = $value;
-    }
-    function fixPermissions($value)
-    {    
-        $this->fixPermissions = $value;
-    }
-    
-    function setDestinationDir($value)
-    {
-        // Convert disallowed characters to underscores
-        //    this->destinationDir=`echo $this->destinationDir | sed -e 's/[^-\~_./a-zA-Z0-9]\+/_/g'`
-        $this->destinationDir = getDirWithFinalSlash($value);
-    }
-    
-    function getDestinationDir()
-    {
-        return $this->destinationDir;
-    }
+	// TODO: We could also grep through httpd.conf in case that this name was changed
+	// wwwgroup=`cat /etc/apache/httpd.conf | grep "^[Gg]roup\ [^\ ]*$" | awk '{ print $NF; }'`
 
-    function setSourceDir($value)
-    {
-        $this->typo3SourceDir = getDirWithFinalSlash($value);
-        $this->debug(0, 'setSourceDir: typo3SourceDir dir: '.$this->typo3SourceDir.'--'.$value);
-    }
+	var $rootDir = "";		// root directory used to operate -another than the standard / is useful in chroot environments and to test different directory szenarios
+	var $typo3SourceDir  = "";	// directory with the typo3 source
+	var $destinationDir = "";	// web directory where typo3 will be installed and used
+	var $fixPermissions = false;	// if true, permissions and links will be modified
+	var $useAlwaysLatest = false;	// if true, symlink to typo3_src will be changed to use latest available typo3_src
+	var $wwwuser = DEFAULT_WWW_USER;	// name of the user that runs the Apache webserver
+	var $wwwgroup = DEFAULT_WWW_GROUP;	// name of the group that runs the Apache webserver
+	var $errors = 0;		// count errors during startup
+	var $errmsg = "";		// display message if errors are detected
+	var $dryrun = true;		// dryrun shows the actions that would be done
 
-    function setRootDir($value)
-    {
-        $this->rootDir = getDirWithFinalSlash($value);
-        $this->debug(1, 'setRootDir root dir: '.$this->rootDir.'--'.$value."\n");
-    }
+	function setAlwaysLatest($value)	{
+		$this->useAlwaysLatest=$value;
+	}
 
-    function setDryRun($value)
-    {
-        if ($value === false)
-            $this->dryrun = false;
-        else
-            $this->dryrun = true;
-    }
-    
-/**
- * Checks on startup, search for required directories and appropriate permissions
- */
-function startUpCheck()
-{
-    $this->debug(0, 'root dir: '.$this->rootDir.' - '.
-                 'typo3SourceDir dir: '.$this->typo3SourceDir);
-    
-    // check and fix root Dir 
-    if (empty($this->rootDir) ||
-        ($this->rootDir == ""))
-    {
-        $this->info('using Default Root Dir ('.DEFAULT_ROOT_DIR.')');
-        $this->rootDir = DEFAULT_ROOT_DIR;
-    }
-    if (! is_dir($this->rootDir))
-    {
-        $this->error('Root Dir is not a directory ('.$this->rootDir.')');
-        $this->errors++;
-    }
+	function setWWWUser($value)	{
+		$this->wwwuser = $value;
+	}
 
-    
-    // determine source dir of type3
-    if (empty($this->typo3SourceDir) ||
-        ($this->typo3SourceDir == ""))
-    {
-        $this->info('using Default Typo 3 Source Dir ('.
-                    $this->rootDir.DEFAULT_TYPO3SOURCE_DIR.')');
-        $this->typo3SourceDir = $this->rootDir.DEFAULT_TYPO3SOURCE_DIR;
-    }
-    else
-    {
-        if (substr($this->typo3SourceDir, 0, 1) == '/') // strip trailing slash
+	function setWWWGroup($value)	{
+		$this->wwwgroup = $value;
+	}
 
-        {
-            $this->typo3SourceDir = substr($this->typo3SourceDir, 1);
-        }
-        $this->typo3SourceDir = $this->rootDir.$this->typo3SourceDir;        
-        if (! is_dir($this->typo3SourceDir))
-        {
-            $this->info('using Default Typo3 Source Dir ('.
-                        $this->rootDir.DEFAULT_TYPO3SOURCE_DIR.')');
-            $this->typo3SourceDir = $this->rootDir.DEFAULT_TYPO3SOURCE_DIR;
-        }
-    }
-    if (! is_dir($this->typo3SourceDir))
-    {
-        $this->error('Could not find the Typo3 Source Directory (last tried was: '.
-                     $this->typo3SourceDir.'! '.
-                     'The option -s could be used to provide a hint.');
-        $this->errors++;
-    }
-    
+	function fixPermissions($value)	{
+		$this->fixPermissions = $value;
+	}
 
-    
-    // We always use /var/lib/typo3/latest to get the version number that will be used for installation
-    // Check if /var/lib/typo3/latest is a symlink
-    if (is_link($this->typo3SourceDir.'latest'))
-    {
-        // Get the current version which will be used by default
-        // $TYPO3_SOURCE=`ls -l /var/lib/typo3/latest | awk '{ print $NF; }'`;
-        $this->typo3SourceDir = readlink($this->typo3SourceDir.'latest');
-        
+	function setDestinationDir($value)	{
+		// Convert disallowed characters to underscores
+		//    this->destinationDir=`echo $this->destinationDir | sed -e 's/[^-\~_./a-zA-Z0-9]\+/_/g'`
+		$this->destinationDir = getDirWithFinalSlash($value);
+	}
 
-        // Maybe /var/lib/typo3/latest does not point to the absolute path
-        if ( ! file_exists($this->typo3SourceDir))
-            $this->typo3SourceDir = $this->rootDir.'var/lib/typo3/'.$this->typo3SourceDir;
+	function getDestinationDir()	{
+		return $this->destinationDir;
+	}
 
-        // If the updated still doesn't exist: Abort.
-        if ( ! file_exists($this->typo3SourceDir))
-            $this->errors++; 
-    }
-    else
-    {
-        $this->error('Could not find the link to the latest Typo3 Source Directory (last tried was: '.
-                     $this->typo3SourceDir.'latest! '.
-                     'The option -s could be used to provide a hint.');
-        $this->errors++;        
-    }
+	function setSourceDir($value)	{
+		$this->typo3SourceDir = getDirWithFinalSlash($value);
+		$this->debug(0, 'setSourceDir: typo3SourceDir dir: '.$this->typo3SourceDir.'--'.$value);
+	}
 
+	function setRootDir($value)	{
+		$this->rootDir = getDirWithFinalSlash($value);
+		$this->debug(1, 'setRootDir root dir: '.$this->rootDir.'--'.$value."\n");
+	}
 
-    // check for permissions to change owner/mod root
-    if ($this->fixPermissions && ($_ENV['USER'] != 'root') && ($this->dryrun == false))
-    {
-        $this->error('=============================================================================='."\n".
-                     'You are not logged in as root'."\n".
-                     'It will not be possible to change the group ownership to '.$this->wwwgroup."\n".
-                     '=============================================================================='."\n\n");
-        $this->errors++;
-    }
-}
-    
+	function setDryRun($value)	{
+		if ($value === false) $this->dryrun = false;
+		else	$this->dryrun = true;
+	}
 
-    /**
-     * abort the script with error message
-     */
-    function abortIfErrors()
-    {
-        echo $this->errmsg;
-        $this->errmsg = "";
-        if ( $this->errors > 0 )
-        {
-            echo "Aborted.\n" ;
-            exit (1);   
-        }
-    }
+	/**
+	 * Checks on startup, search for required directories and appropriate permissions
+	 */
+	function startUpCheck()	{
+		$this->debug(0, 'root dir: '.$this->rootDir.' - '.
+			'typo3SourceDir dir: '.$this->typo3SourceDir);
 
-    /**
-     * check and fix destination dir
-     */
-function checkDestinationDir()
-{
-    if (empty($this->destinationDir) ||
-        ($this->destinationDir == ""))
-    {
-        $this->info('using Default Destination Dir ('.$this->rootDir.DEFAULT_DESTINATION_DIR.')');
-        $this->destinationDir = $this->rootDir.DEFAULT_DESTINATION_DIR;
-    }
-    if (! is_dir($this->destinationDir))
-    {
-        $this->error('Destination Directory '.$this->destinationDir.' is not a directory or missing at all.');
-        $this->errors++;
-    }
-    if ( ! file_exists( $this->destinationDir.'/index.php' ))
-    {
-        $this->error('Site seems to be incorrect (missing '.
-                     $this->destinationDir.'/index.php)!');
-        $this->errors++;
-        $this->info('The directory you tried to use was:'."\n".
-                    $this->getDestinationDir()."\n\n".
-                    'Make sure you create the directory structure with this script.'."\n".
-                    'Use this command to do so:'."\n".
-                    '  typo3-site-installer -d '.$this->destinationDir."\n\n".
-                    'If you think this is a bug, please contact the author.'."\n".
-                    '=============================================================================='."\n");
-    }
-}
+			// check and fix root Dir
+		if (empty($this->rootDir) || ($this->rootDir == "")) {
+			$this->info('using Default Root Dir ('.DEFAULT_ROOT_DIR.')');
+			$this->rootDir = DEFAULT_ROOT_DIR;
+		}
 
-/**
- * Install a clean dummysite
- */
-function install_site()
-{
+		if (! is_dir($this->rootDir)) {
+			$this->error('Root Dir is not a directory ('.$this->rootDir.')');
+			$this->errors++;
+		}
+
+			// determine source dir of TYPO3
+		if (empty($this->typo3SourceDir) || ($this->typo3SourceDir == "")) {
+
+			$this->info('using Default Typo 3 Source Dir ('.
+				$this->rootDir.DEFAULT_TYPO3SOURCE_DIR.')');
+			$this->typo3SourceDir = $this->rootDir.DEFAULT_TYPO3SOURCE_DIR;
+
+		} else {
+
+			if (substr($this->typo3SourceDir, 0, 1) == '/') {
+
+					// strip trailing slash
+				$this->typo3SourceDir = substr($this->typo3SourceDir, 1);
+			}
+
+			$this->typo3SourceDir = $this->rootDir.$this->typo3SourceDir;
+
+			if (! is_dir($this->typo3SourceDir)) {
+				$this->info('using Default Typo3 Source Dir ('.
+					$this->rootDir.DEFAULT_TYPO3SOURCE_DIR.')');
+				$this->typo3SourceDir = $this->rootDir.DEFAULT_TYPO3SOURCE_DIR;
+			}
+		}
+
+		if (! is_dir($this->typo3SourceDir)) {
+			$this->error('Could not find the Typo3 Source Directory (last tried was: '.
+				$this->typo3SourceDir.'! '.
+				'The option -s could be used to provide a hint.');
+			$this->errors++;
+		}
+
+		/*
+		 * We always use /var/lib/typo3/latest to get the version number that will be used for installation
+		 * Check if /var/lib/typo3/latest is a symlink
+		 */
+		if (is_link($this->typo3SourceDir.'latest')) {
+				// Get the current version which will be used by default
+				// $TYPO3_SOURCE=`ls -l /var/lib/typo3/latest | awk '{ print $NF; }'`;
+			$this->typo3SourceDir = readlink($this->typo3SourceDir.'latest');
+
+				// Maybe /var/lib/typo3/latest does not point to the absolute path
+			if (!file_exists($this->typo3SourceDir))	$this->typo3SourceDir = $this->rootDir.'var/lib/typo3/'.$this->typo3SourceDir;
+
+				// If the updated still doesn't exist: Abort.
+			if ( ! file_exists($this->typo3SourceDir))	$this->errors++;
+		} else {
+
+			$this->error('Could not find the link to the latest Typo3 Source Directory (last tried was: '.
+				$this->typo3SourceDir.'latest! '.
+				'The option -s could be used to provide a hint.');
+			$this->errors++;
+		}
+
+			// check for permissions to change owner/mod root
+		if ($this->fixPermissions && ($_ENV['USER'] != 'root') && ($this->dryrun == false)) {
+			$this->error('=============================================================================='."\n".
+				'You are not logged in as root'."\n".
+				'It will not be possible to change the group ownership to '.$this->wwwgroup."\n".
+				'=============================================================================='."\n\n");
+			$this->errors++;
+		}
+	}
+
+	/**
+	 * abort the script with error message
+	 */
+	function abortIfErrors()	{
+		echo $this->errmsg;
+		$this->errmsg = "";
+		if ( $this->errors > 0 ) {
+			echo "Aborted.\n";
+			exit (1);
+		}
+	}
+
+	/**
+	 * check and fix destination dir
+	 */
+	function checkDestinationDir()	{
+		if (empty($this->destinationDir) || ($this->destinationDir == "")) {
+			$this->info('using Default Destination Dir ('.$this->rootDir.DEFAULT_DESTINATION_DIR.')');
+			$this->destinationDir = $this->rootDir.DEFAULT_DESTINATION_DIR;
+		}
+
+		if (! is_dir($this->destinationDir)) {
+			$this->error('Destination Directory '.$this->destinationDir.' is not a directory or missing at all.');
+			$this->errors++;
+		}
+
+		if ( ! file_exists( $this->destinationDir.'/index.php')) {
+			$this->error('Site seems to be incorrect (missing '.
+				$this->destinationDir.'/index.php)!');
+			$this->errors++;
+
+			$this->info('The directory you tried to use was:'."\n".
+				$this->getDestinationDir()."\n\n".
+				'Make sure you create the directory structure with this script.'."\n".
+				'Use this command to do so:'."\n".
+				'  typo3-site-installer -d '.$this->destinationDir."\n\n".
+				'If you think this is a bug, please contact the author.'."\n".
+				'=============================================================================='."\n");
+		}
+	}
+
+	/**
+	 * Install a clean dummysite
+	 */
+	function install_site()	{
 /*
     // Test if directory is writable
     if [ -w `dirname $this->getDestinationDir()` ]; then
@@ -386,343 +320,297 @@ EOF
 
     fi
 */
+	}
+
+	/**
+	 * fix symlinks
+	 */
+	function fixSymlinks()	{
+		/*
+			// Point typo3_src to /var/lib/typo3/latest
+		if [ $useAlwaysLatest == 1 ]; then $TYPO3_SOURCE=/var/lib/typo3/latest; fi
+		*/
+	}
+
+	/**
+	 * search trough the directory including the sub directories and set
+	 * the owner and the group of the files and directories
+	 * (symbolic links are ignored!)
+	 */
+	function setToOwnerGroupRecursive($dir)	{
+		$this->debug(0, 'setToOwnerGroupRecursive: ', $dir, "\n");
+		$result = true;
+
+			// Open a known directory, and proceed to read its contents
+		if (is_dir($dir)) {
+			if ($dh = opendir($dir)) {
+				while (($file = readdir($dh)) !== false) {
+					if (($file == '.') || ($file == '..'))	continue;
+
+					$filetype = filetype($dir.$file);
+					if ($filetype == 'link')	continue;
+
+					if (($filetype == 'file') || ($filetype == 'dir')) {
+						if ($filetype == 'dir') {
+							$this->setToOwnerGroup($dir, $file);
+							$this->setToOwnerGroupRecursive($dir.$file);
+						} else {
+							$this->setToOwnerGroup($dir, $file);
+						}
+					} else {
+						$this->warn('Unexpected filetype '.$filetype.
+							' from file '.$dir.$file);
+					}
+				}
+
+				closedir($dh);
+			}
+		} else {
+			$this->error($dir.' is not a directory!');
+			$result = false;
+		}
+
+		return $result;
+	}
+
+	function setToOwnerGroup($dir, $file)	{
+		$result = true;
+
+		if ($this->dryrun == true) {
+			$this->info('chown '.$this->wwwuser.':'.$this->wwwgroup.' '.$dir.$file);
+		} else {
+			if (!chown($dir.$file, $this->wwwuser)) {
+				$this->error('chown '.$this->wwwuser.' '.$dir.$file.' failed!');
+				$result = false;
+			}
+
+			if (!chgrp($dir.$file, $this->wwwgroup)) {
+				$this->error('chgrp '.$this->wwwgroup.' '.$dir.$file.' failed!');
+				$result = false;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * search trough the directory including the sub directories and set
+	 * the owner and the group of the files and directories
+	 * (symbolic links are ignored!)
+	 */
+	function setDirFileModeRecursive($dir, $dirmod, $filemod)	{
+		$this->debug(0, 'setToOwnerGroupRecursive: ', $dir, "\n");
+		$result = true;
+
+			// Open a known directory, and proceed to read its contents
+		if (is_dir($dir)) {
+			if ($dh = opendir($dir)) {
+				while (($file = readdir($dh)) !== false) {
+					if (($file == '.') || ($file == '..'))	continue;
+
+					$filetype = filetype($dir.$file);
+					if ($filetype == 'link')	continue;
+
+					if (($filetype == 'file') || ($filetype == 'dir')) {
+						if ($filetype == 'dir') {
+							$this->setDirMode($dir, $file, $dirmod);
+							$this->setDirFileModeRecursive($dir.$file);
+						} else {
+							$this->setFileMode($dir, $file, $filemod);
+						}
+					} else {
+						$this->warn('Unexpected filetype '.$filetype.
+							' from file '.$dir.$file);
+					}
+				}
+
+				closedir($dh);
+			}
+
+		} else {
+
+			$this->error($dir.' is not a directory!');
+			$result = false;
+		}
+
+		return $result;
+	}
+
+
+	function setFileMode($dir, $file, $filemod)	{
+		$this->debug(0, 'setFileMode: ', $dir, "\n");
+		$result = true;
+
+		if (file_exists($dir.$file)) {
+			if ($this->dryrun == true) {
+				$this->info('chmod '.$filemod.' '.$dir.$file);
+			} else {
+				if (!chmod($dir.$file, $filemod)) {
+					$this->error('chmod '.$filemod.' '.$dir.$file.' failed!');
+					$result = false;
+				}
+			}
+		} else {
+			$this->error('chmod '.$filemod.' '.$dir.$file.' failed, because file does not exist!');
+			$result = false;
+		}
+
+		return $result;
+	}
+
+	function setDirMode($dir, $file, $dirmod)	{
+		$this->debug(0, 'setDirMode: ', $dir, "\n");
+		$result = true;
+
+		if (is_dir($dir.$file)) {
+			if ($this->dryrun == true) {
+				$this->info('chmod '.$dirmod.' '.$dir.$file);
+			} else {
+				if (!chmod($dir.$file, $dirmod)) {
+					$this->error('chmod '.$dirmod.' '.$dir.$file.' failed!');
+					$result = false;
+				}
+			}
+
+		} else {
+
+			$this->error('chmod '.$dirmod.' '.$dir.$file.' failed, because it is not a directory!');
+			$result = false;
+		}
+
+		return $result;
+	}
+
+
+	/**
+	 * fix some permissions
+	 */
+	function fix_permissions()	{
+		$this->checkDestinationDir();
+		$this->abortIfErrors();
+
+		$this->debug(0, 'User is ',$_ENV['USER'],"\n");
+
+		if (($_ENV['USER'] === 'root') || ($this->dryrun == true)) {
+
+			/*
+			chgrp -R $wwwgroup $this->getDestinationDir()
+			find $this->getDestinationDir() -type f -exec chmod 640 {} \;
+			find $this->getDestinationDir() -type d -exec chmod 750 {} \;
+
+			chmod -R g+w $this->getDestinationDir()/fileadmin
+			chmod -R g+w $this->getDestinationDir()/typo3conf
+			chmod -R g+w $this->getDestinationDir()/typo3temp
+			chmod -R g+w $this->getDestinationDir()/uploads
+			*/
+
+			$this->setToOwnerGroupRecursive($this->getDestinationDir());
+			$this->setDirFileModeRecursive($this->getDestinationDir(), 0750, 0640);
+			$this->setDirFileModeRecursive($this->getDestinationDir().'fileadmin/', 0770, 0660);
+			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3conf/', 0770, 0660);
+			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3temp/', 0770, 0660);
+			$this->setDirFileModeRecursive($this->getDestinationDir().'uploads/', 0770, 0660);
+			$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
+
+		} else {
+
+			/*
+			find $this->getDestinationDir() -type f -exec chmod 666 {} \;
+			find $this->getDestinationDir() -type d -exec chmod 777 {} \;
+			chmod 600 $this->getDestinationDir()/changelog
+			*/
+			$this->setDirFileModeRecursive($this->getDestinationDir(), 0777, 0666);
+			$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
+
+			$this->info('=============================================================================='."\n".
+				'You are not logged in as root.'."\n".
+				'It was not possible to change the ownership to '.
+				$this->wwwuser.':'.$this->wwwgroup."\n".
+				"\n".
+				'The permissions have therefore been changed to minimal security (everybody can'."\n".
+				'read and write).'."\n".
+				"\n".
+				'Though your site will be working with these settings, you are strongly'."\n".
+				'encouraged to fix that problem by running this script again but with root'."\n".
+				'permissions and using the option --fix-permissions:'."\n".
+				"\n".
+				'The following command can be used to do so:'."\n".
+				'  typo3-site-installer -d '.$this->destinationDir.' --fix-permissions');
+		}
+
+
+		$this->info('=============================================================================='."\n".
+			'Finished. But there is still something to do:'."\n".
+			"\n".
+			'First: It has to be ensured that '.$this->destinationDir.' is accessable through the webserver.'."\n".
+			'(Move this directory to /var/www/ if you do not know what to do.)'."\n".
+			"\n".
+			"\n".
+			'Next, the following steps are neccessary:'."\n".
+			"\n".
+			'  * In ".$this->typo3SourceDir."typo3/install/index.php:'."\n".
+			'    Commenting out line 40 (the \'die()\' function call)'."\n".
+			'  * Using a browser to point to the location just created and to complete the setup'."\n".
+			'  * Removing the comment from above'."\n".
+			"\n".
+			'Note: the image settings should already be optimized for Debian Woody.'."\n".
+			"\n".
+			'Make sure to read the README file for later install instructions.'."\n".
+			'=============================================================================='."\n");
+
+		if ($this->dryrun == true)	$this->info('Nothing done - Program executed as dry run.');
+		else			$this->info('Successfully done');
+	}
+
+	/**
+	 * execute the necesssary functions - main method
+	 */
+	function doActions()	{
+		if ($this->fixPermissions) {
+			$this->fix_permissions();
+		} else {
+			$this->install_site();
+			$this->fix_permissions();
+		}
+
+		/*
+		 * Todo: Run the site fetcher
+		 *
+		require($INCLUDE_DIR.'class.site_fetcher.php');
+		$fetcher = new site_fetcher;
+		$res = $fetcher->fetch_site('3.6.2', 'dummy');
+		*/
+		$this->abortIfErrors();
+	}
+
+	/**
+	 * register msg for output
+	 */
+	function error($msg)	{
+		$this->errmsg .= 'ERROR: '.$msg."\n";
+	}
+
+	/**
+	 * register msg for output
+	 */
+	function warn($msg)	{
+		$this->errmsg .= 'WARNING: '.$msg."\n";
+	}
+
+	/**
+	 * register msg for output
+	 */
+	function info($msg)	{
+		$this->errmsg .= $msg."\n";
+	}
+
+	/**
+	 * register msg for output, if $debug > $level
+	 */
+	function debug($level, $msg)	{
+		global $debug;
+		if ($debug > $level)	$this->errmsg .= 'Debug: '.$msg."\n";
+	}
 }
-
-/**
- * fix symlinks
- */
-function fixSymlinks()
-{
-    /*
-            // Point typo3_src to /var/lib/typo3/latest
-            if [ $useAlwaysLatest == 1 ]; then $TYPO3_SOURCE=/var/lib/typo3/latest; fi
-    */
-}
-
-/**
- * search trough the directory including the sub directories and set
- * the owner and the group of the files and directories
- * (symbolic links are ignored!)
- */
-function setToOwnerGroupRecursive($dir)
-{
-    $this->debug(0, 'setToOwnerGroupRecursive: ', $dir, "\n");
-    
-    $result = true;
-    // Open a known directory, and proceed to read its contents
-    if (is_dir($dir))
-    {
-        if ($dh = opendir($dir))
-        {
-            while (($file = readdir($dh)) !== false)
-            {
-                if (($file == '.') || ($file == '..'))
-                    continue;
-                $filetype = filetype($dir.$file);
-                if ($filetype == 'link')
-                    continue;
-                if (($filetype == 'file') || ($filetype == 'dir'))
-                {
-                    if ($filetype == 'dir')
-                    {
-                        $this->setToOwnerGroup($dir, $file);
-                        $this->setToOwnerGroupRecursive($dir.$file);
-                    }
-                    else
-                        $this->setToOwnerGroup($dir, $file);
-                }
-                else
-                    $this->warn('Unexpected filetype '.$filetype.
-                                ' from file '.$dir.$file);
-            }
-            closedir($dh);
-        }
-    }
-    else
-    {
-        $this->error($dir.' is not a directory!');
-        $result = false;
-    }
-    return $result;
-}
-
-function setToOwnerGroup($dir, $file)
-{
-    $result = true;
-    if ($this->dryrun == true)
-    {
-        $this->info('chown '.$this->wwwuser.':'.$this->wwwgroup.' '.$dir.$file);
-    }
-    else
-    {
-        if (!chown($dir.$file, $this->wwwuser))
-        {
-            $this->error('chown '.$this->wwwuser.' '.$dir.$file.' failed!');
-            $result = false;
-        }
-        if (!chgrp($dir.$file, $this->wwwgroup))
-        {
-            $this->error('chgrp '.$this->wwwgroup.' '.$dir.$file.' failed!');
-            $result = false;
-        }
-    }
-    return $result;
-}
-
-
-/**
- * search trough the directory including the sub directories and set
- * the owner and the group of the files and directories
- * (symbolic links are ignored!)
- */
-function setDirFileModeRecursive($dir, $dirmod, $filemod)
-{
-    $this->debug(0, 'setToOwnerGroupRecursive: ', $dir, "\n");
-    
-    $result = true;
-    // Open a known directory, and proceed to read its contents
-    if (is_dir($dir))
-    {
-        if ($dh = opendir($dir))
-        {
-            while (($file = readdir($dh)) !== false)
-            {
-                if (($file == '.') || ($file == '..'))
-                    continue;
-                $filetype = filetype($dir.$file);
-                if ($filetype == 'link')
-                    continue;
-                if (($filetype == 'file') || ($filetype == 'dir'))
-                {
-                    if ($filetype == 'dir')
-                    {
-                        $this->setDirMode($dir, $file, $dirmod);
-                        $this->setDirFileModeRecursive($dir.$file);
-                    }
-                    else
-                        $this->setFileMode($dir, $file, $filemod);
-                }
-                else
-                    $this->warn('Unexpected filetype '.$filetype.
-                                ' from file '.$dir.$file);
-            }
-            closedir($dh);
-        }
-    }
-    else
-    {
-        $this->error($dir.' is not a directory!');
-        $result = false;
-    }
-    return $result;
-}
-
-function setFileMode($dir, $file, $filemod)
-{
-    $this->debug(0, 'setFileMode: ', $dir, "\n");
-
-    $result = true;
-    if (file_exists($dir.$file))
-    {
-        if ($this->dryrun == true)
-        {
-            $this->info('chmod '.$filemod.' '.$dir.$file);
-        }
-        else
-        {
-            if (!chmod($dir.$file, $filemod))
-            {
-                $this->error('chmod '.$filemod.' '.$dir.$file.' failed!');
-                $result = false;
-            }
-        }
-    }
-    else
-    {
-        $this->error('chmod '.$filemod.' '.$dir.$file.' failed, because file does not exist!');
-        $result = false;
-    }
-    return $result;
-}
-
-function setDirMode($dir, $file, $dirmod)
-{
-    $this->debug(0, 'setDirMode: ', $dir, "\n");
-
-    $result = true;
-    if (is_dir($dir.$file))
-    {
-        if ($this->dryrun == true)
-        {
-            $this->info('chmod '.$dirmod.' '.$dir.$file);
-        }
-        else
-        {
-            if (!chmod($dir.$file, $dirmod))
-            {
-                $this->error('chmod '.$dirmod.' '.$dir.$file.' failed!');
-                $result = false;
-            }
-        }
-    }
-    else
-    {
-        $this->error('chmod '.$dirmod.' '.$dir.$file.' failed, because it is not a directory!');
-        $result = false;
-    }
-    return $result;
-}
-
-
-/**
- * fix some permissions
- */
-function fix_permissions()
-{
-    
-    $this->checkDestinationDir();
-    $this->abortIfErrors();
-
-
-    $this->debug(0, 'User is ',$_ENV['USER'],"\n");
-    if (($_ENV['USER'] === 'root') || ($this->dryrun == true))
-    {
-        /*
-        chgrp -R $wwwgroup $this->getDestinationDir()
-        find $this->getDestinationDir() -type f -exec chmod 640 {} \;
-        find $this->getDestinationDir() -type d -exec chmod 750 {} \;
-
-        chmod -R g+w $this->getDestinationDir()/fileadmin
-        chmod -R g+w $this->getDestinationDir()/typo3conf
-        chmod -R g+w $this->getDestinationDir()/typo3temp
-        chmod -R g+w $this->getDestinationDir()/uploads
-            
-        */
-        $this->setToOwnerGroupRecursive($this->getDestinationDir());
-        
-        $this->setDirFileModeRecursive($this->getDestinationDir(), 0750, 0640);
-        
-        $this->setDirFileModeRecursive($this->getDestinationDir().'fileadmin/', 0770, 0660);
-        $this->setDirFileModeRecursive($this->getDestinationDir().'typo3conf/', 0770, 0660);
-        $this->setDirFileModeRecursive($this->getDestinationDir().'typo3temp/', 0770, 0660);
-        $this->setDirFileModeRecursive($this->getDestinationDir().'uploads/', 0770, 0660);
-
-        $this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);    
-    }
-    else
-    {
-        /*
-        find $this->getDestinationDir() -type f -exec chmod 666 {} \;
-        find $this->getDestinationDir() -type d -exec chmod 777 {} \;
-        chmod 600 $this->getDestinationDir()/changelog
-        */       
-        $this->setDirFileModeRecursive($this->getDestinationDir(), 0777, 0666);
-        $this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);    
-
-        $this->info('=============================================================================='."\n".
-                    'You are not logged in as root.'."\n".
-                    'It was not possible to change the ownership to '.
-                    $this->wwwuser.':'.$this->wwwgroup."\n".
-                    "\n".
-                    'The permissions have therefore been changed to minimal security (everybody can'."\n".
-                    'read and write).'."\n".
-                    "\n".
-                    'Though your site will be working with these settings, you are strongly'."\n".
-                    'encouraged to fix that problem by running this script again but with root'."\n".
-                    'permissions and using the option --fix-permissions:'."\n".
-                    "\n".
-                    'The following command can be used to do so:'."\n".
-                    '  typo3-site-installer -d '.$this->destinationDir.' --fix-permissions');
-    }
-    
-
-    $this->info('=============================================================================='."\n".
-                'Finished. But there is still something to do:'."\n".
-                "\n".
-                'First: It has to be ensured that '.$this->destinationDir.' is accessable through the webserver.'."\n".
-                '(Move this directory to /var/www/ if you do not know what to do.)'."\n".
-                "\n".
-                "\n".
-                'Next, the following steps are neccessary:'."\n".
-                "\n".
-                '  * In ".$this->typo3SourceDir."typo3/install/index.php:'."\n".
-                '    Commenting out line 40 (the \'die()\' function call)'."\n".
-                '  * Using a browser to point to the location just created and to complete the setup'."\n".
-                '  * Removing the comment from above'."\n".
-                "\n".
-                'Note: the image settings should already be optimized for Debian Woody.'."\n".
-                "\n".
-                'Make sure to read the README file for later install instructions.'."\n".
-                '=============================================================================='."\n");
-    if ($this->dryrun == true)
-        $this->info('Nothing done - Program executed as dry run.');
-    else
-        $this->info('Successfully done');
-}
-
-/**
- * execute the necesssary functions - main method
- */
-function doActions()
-{
-    if ($this->fixPermissions)
-        $this->fix_permissions();
-    else
-    {
-        $this->install_site();
-        $this->fix_permissions();
-    }
-/*
- * Todo: Run the site fetcher
- *
-require($INCLUDE_DIR.'class.site_fetcher.php');
-$fetcher = new site_fetcher;
-$res = $fetcher->fetch_site('3.6.2', 'dummy');
-*/
-    $this->abortIfErrors();
-}
-
-/**
- * register msg for output
- */
-function error($msg)
-{
-    $this->errmsg .= 'ERROR: '.$msg."\n";
-}
-
-/**
- * register msg for output
- */
-function warn($msg)
-{
-    $this->errmsg .= 'WARNING: '.$msg."\n";
-}
-
-/**
- * register msg for output
- */
-function info($msg)
-{
-    $this->errmsg .= $msg."\n";
-}
-
-/**
- * register msg for output, if $debug > $level
- */
-function debug($level, $msg)
-{
-    global $debug;
-
-    if ($debug > $level)
-        $this->errmsg .= 'Debug: '.$msg."\n";
-}
-
-
-
-
-
-}
-
-
 
 ?>

@@ -1,6 +1,15 @@
-typo3-site-installer (0.1) unstable; urgency=low
+typo3-site-installer (0.1-2) unstable; urgency=low
+
+  * Changes in control file:
+    - Explicitely asking for php4-cli (=> 4:4.3.9-1)
+    - Added dependency for php4-pear (=> 4:4.3.9-1)
+    - Recommending typo3-source, default suggestion is typo3-source-3-7
+    - Description updates
+
+ -- Michael Stucki <michael@typo3.org>  Sat, 13 Nov 2004 00:32:42 +0100
+
+typo3-site-installer (0.1-1) unstable; urgency=low
 
   * Initial Release.
 
  -- Christian Leutloff <leutloff@debian.org>  Fri, 12 Nov 2004 08:02:45 +0100
-

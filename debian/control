@@ -7,13 +7,19 @@ Standards-Version: 3.6.1
 
 Package: typo3-site-installer
 Architecture: all
-Depends: php4-cli
-Suggests: typo3 | typo3-frontend, typo3-db-dummy | typo3-db-quickstart | typo3-db-testsite
-Description: Managing initial Typo3 installations
- This package contains a small PHP script that setup an initial Typo3
+Depends: php4-cli (=> 4:4.3.9-1), php4-pear (=> 4:4.3.9-1)
+Recommends: typo3-source | typo3-source-3-7
+Suggests: typo3
+Description: TYPO3 site installer
+ TYPO3 is a Web content management system which features automatic creation of
+ navigational menus, headlines, and other dynamic graphical elements, automatic
+ conversion and scaling of images, the ability to present different templates
+ based on variables such as client browser or country code, support for
+ multiple templates on a site, and a built-in password-protection option. Pages
+ can be timed to be shown on a certain date, be hidden on a certain date or
+ just temporarily hidden. TYPO3 supports search in SQL-databases and
+ redesigning of a website at once is just a matter of creating a single new
+ template.
+ .
+ This package contains a set of PHP scripts that setup an initial TYPO3
  site for you.
- .
- Typo3 is a Web content management system.
- .
- Authors:  Michael Stucki, Christian Leutloff
- Homepage: http://www.mstucki.net/

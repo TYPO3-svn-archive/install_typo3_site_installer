@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2004 Michael Stucki (mundaun@gmx.ch)
+*  (c) 2004 Michael Stucki (michael@typo3.org)
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -29,9 +29,9 @@
  *
  * $Id$
  *
- * @author	Michael Stucki <mundaun@gmx.ch>
+ * @author	Michael Stucki <michael@typo3.org>
  */
-class db_manager {
+class db_manager	{
 	var $......;
 	# Start here...
 }

@@ -1,16 +1,20 @@
+2004-11-13  Michael Stucki  <michael@typo3.org>
+
+	* Moved TODO file into doc/ directory
+	* Renamed _.htaccess to simple.htaccess
+	* Added advanced.htaccess
+	* Minor README updates
+	* Huge code cleanup in typo3-site-installer and class.site_installer.php
+
 2004-11-05  Christian Leutloff  <leutloff@debian.org>
 
-	* improved handling of command line arguments
+	* Improved handling of command line arguments
+	* Moved usage info from class to calling script
 
-	* moved usage info from class to calling script
-  
-2004-08-29  Michael Stucki  <mundaun@gmx.ch>
+2004-08-29  Michael Stucki  <michael@typo3.org>
 
 	* Changed the file structured, starting to work on it
 
-2004-08-13  Michael Stucki  <mundaun@gmx.ch>
+2004-08-13  Michael Stucki  <michael@typo3.org>
 
 	* Initial upload
-
-
-  

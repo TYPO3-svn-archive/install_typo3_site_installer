@@ -30,17 +30,19 @@
  * $Id$
  *
  * @author	Sven Wilhelm <wilhelm@icecrash.com>
- * @author	Michael Stucki <mundaun@gmx.ch>
+ * @author	Michael Stucki <michael@typo3.org>
  */
-class site_fetcher {
+class site_fetcher	{
 	var $remote_site = 'http://typo3.sunsite.dk';
 	var $type = 'dummy';
 	var $version = '3.6.2';
 
-	function site_fetcher() {
+	function site_fetcher()	{
+			// startup commands...
+		# echo "Nothing";
 	}
 
-	function fetch_site($version, $type) {
+	function fetch_site($version, $type)	{
 			/* valid types are dummy, quickstart, testsite */
 		$tmp_type = strtolower($type);
 
@@ -60,7 +62,7 @@ class site_fetcher {
 		else die("Could not fetch sitepackage\n");
 	}
 
-	function check_type($type) {
+	function check_type($type)	{
 		$valid_types = array('dummy','quickstart','testsite');
 		foreach($valid_types as $current) {
 			if($type == $current) return true;
@@ -71,13 +73,13 @@ class site_fetcher {
 	/**
 	 * Version range checking, could be implemented
 	 */
-	function check_version($version) {
+	function check_version($version)	{
 	}
 
         /**
 	 * remote_site/unix-archives/version/type/type-version.tar.gz
 	 */
-	function build_url($version, $type, $remote_site) {
+	function build_url($version, $type, $remote_site)	{
 		$url = sprintf("%s/%s/%s/%s/%s-%s.tar.gz",
 			$remote_site, 'unix-archives', $version,
 			$type, $type, $version);
@@ -87,7 +89,7 @@ class site_fetcher {
 	/**
 	 * Some more checks on the given dir have to be implemented
 	 */
-	function fetch_data($url, $dir = '/tmp') {
+	function fetch_data($url, $dir = '/tmp')	{
 		$filename = basename($url);
 		$tmpname = tempnam($dir, $filename);
 

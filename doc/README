@@ -1,7 +1,7 @@
 TYPO3 site installer
 ---------------------
 
-This package does contain the TYPO3 site installer for Debian.
+This package contains the TYPO3 site installer.
 
 How to get started
 *******************************************
@@ -17,4 +17,4 @@ How to get started
    http://[your.site.name]/<this_directories_name>/typo3/
    with the username "admin" and password "password".
 
- -- Michael Stucki <mundaun@gmx.ch>  Fri, 13 Aug 2004 15:19:31 +0200
+ -- Michael Stucki <michael@typo3.org>  Sat, 13 Nov 2004 00:25:05 +0100
