@@ -1,0 +1,7 @@
+TODO
+====
+
+- Adapt man page to new options
+- Port script to Win32 through an extension to the file system operations so that they work operation system independent
+- Reenable the site installation feature: Move the remaining parts of a BASH script to PHP
+- Remove database.sql (the version in the site package should be used, instead)
