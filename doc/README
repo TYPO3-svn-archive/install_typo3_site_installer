@@ -1,0 +1,33 @@
+TYPO3 site installer
+---------------------
+
+!!! IMPORTANT NOTE !!!
+This is the very first upload of this script.
+It is based on the former Debian package "typo3-site-installer" written by
+Michael Stucki <mundaun@gmx.ch>. The script is not usable yet but should
+give an idea of what this will become.
+
+Help is very welcome but note that I plan to rewrite this script completely
+in the next few days.
+
+- michael
+
+===
+
+This package does contain the TYPO3 site installer for Debian.
+
+How to get started
+*******************************************
+
+1. su (switch to superuser mode)
+2. cd <webroot>
+3. typo3-site-installer -d <target-directory>
+4. exit (leave superuser mode)
+5. In your browser, hit
+   http://[your.site.name]/<target-directory>/typo3/install/index.php
+6. Follow the instructions in the 1-2-3 install tool
+7. Now you can access the backend through
+   http://[your.site.name]/<this_directories_name>/typo3/
+   with the username "admin" and password "password".
+
+ -- Michael Stucki <mundaun@gmx.ch>  Fri, 13 Aug 2004 15:19:31 +0200
