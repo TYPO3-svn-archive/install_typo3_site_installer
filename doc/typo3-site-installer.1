@@ -1,0 +1,57 @@
+.TH "typo3-site-installer" "1" "3.5.0-7" "Edelhard Becker" ""
+.SH "NAME"
+.LP 
+typo3\-site\-installer, an installer for fresh TYPO3 sites
+    
+.SH "SYNTAX"
+.LP 
+typo3\-site\-installer [OPTION]... \-d, \-\-destination=<\fIdir\fP>
+.SH "DESCRIPTION"
+.LP 
+This small script will create an initial TYPO3 site for you.
+Optionally it can fix the permissions on an already existing site.
+.br 
+When used only with the mandatory
+\fB\-d, \-\-destination=\fR<\fIdir\fP> flag, this script
+creates the given \fIdir\fP and the necessary files and
+symlinks inside it just below your actual directory.
+The permissions are set up correctly (so an additional \fB\-f\fR is not
+necessary). \fIdir\fP must not exist in your current
+working directory.
+.SH "OPTIONS"
+.LP 
+.TP 
+\fB\-f, \-\-fix\-permissions\fR
+Fixes the permissions for an already existing Typo3 site inside the given \fIdir\fP.
+.br
+Note that this option requires root privileges.
+.TP 
+\fB\-a, \-\-always\-latest\fR
+If set, the symlink typo3_src will point to /var/lib/typo3/latest which is a
+symbolic link to the most recent TYPO3 version.
+.br
+If \fB\-a\fR is not specified, the script lookup and use the target of the above
+symlink.
+.TP 
+\fB\-g, \-\-group=\fR<\fIgroup\fP>
+If a group is specified, the script will change the group ownership of the site
+directory to \fIgroup\fP.
+.br
+Note that this option requires root privileges.
+.SH "EXAMPLES"
+.LP 
+The simplest way to create a new site is to create it below /var/www. This
+way you simply can access it via http://localhost/newsite/ (you must
+be root to do this).
+.LP 
+cd /var/www
+.LP 
+typo3\-site\-installer \-d newsite
+.LP 
+If you don't have access to /var/www you can create the site in your
+$HOME/public_html directory.
+.SH "AUTHORS"
+.LP 
+Edelhard Becker <edelhard@debian.org>
+.br
+Michael Stucki  <mundaun@gmx.ch>
