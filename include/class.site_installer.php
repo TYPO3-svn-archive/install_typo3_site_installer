@@ -46,13 +46,20 @@ define('DEFAULT_WWW_GROUP', 'www-data');
 
 
 /**
- * helper function: ensure that dirs ends with a slach
+ * helper function: ensure that dirs ends with a slash
  */
 function getDirWithFinalSlash($dir)	{
 	if (substr($dir, strlen($dir)-1, strlen($dir)) === '/')	return $dir;
 	return $dir.'/';
 }
 
+/**
+ * helper function: ensure that dirs starts not with a slash
+ */
+function getDirWithOutTrailingSlash($dir)	{    
+	if ($dir[0] === '/')	return substr($dir, 1, strlen($dir));
+    	return $dir;
+}
 
 class site_installer	{
 
@@ -68,7 +75,7 @@ class site_installer	{
 	var $wwwgroup = DEFAULT_WWW_GROUP;	// name of the group that runs the Apache webserver
 	var $errors = 0;		// count errors during startup
 	var $errmsg = "";		// display message if errors are detected
-	var $dryrun = true;		// dryrun shows the actions that would be done
+	var $dryrun = false;		// dryrun shows the actions that would be done
 
 	function setAlwaysLatest($value)	{
 		$this->useAlwaysLatest=$value;
@@ -98,7 +105,7 @@ class site_installer	{
 
 	function setSourceDir($value)	{
 		$this->typo3SourceDir = getDirWithFinalSlash($value);
-		$this->debug(0, 'setSourceDir: typo3SourceDir dir: '.$this->typo3SourceDir.'--'.$value);
+		$this->debug(1, 'setSourceDir: typo3SourceDir dir: '.$this->typo3SourceDir.'--'.$value);
 	}
 
 	function setRootDir($value)	{
@@ -115,7 +122,7 @@ class site_installer	{
 	 * Checks on startup, search for required directories and appropriate permissions
 	 */
 	function startUpCheck()	{
-		$this->debug(0, 'root dir: '.$this->rootDir.' - '.
+		$this->debug(1, 'root dir: '.$this->rootDir.' - '.
 			'typo3SourceDir dir: '.$this->typo3SourceDir);
 
 			// check and fix root Dir
@@ -137,13 +144,7 @@ class site_installer	{
 			$this->typo3SourceDir = $this->rootDir.DEFAULT_TYPO3SOURCE_DIR;
 
 		} else {
-
-			if (substr($this->typo3SourceDir, 0, 1) == '/') {
-
-					// strip trailing slash
-				$this->typo3SourceDir = substr($this->typo3SourceDir, 1);
-			}
-
+                        $this->typo3SourceDir = getDirWithOutTrailingSlash($this->typo3SourceDir);
 			$this->typo3SourceDir = $this->rootDir.$this->typo3SourceDir;
 
 			if (! is_dir($this->typo3SourceDir)) {
@@ -176,7 +177,7 @@ class site_installer	{
 			if ( ! file_exists($this->typo3SourceDir))	$this->errors++;
 		} else {
 
-			$this->error('Could not find the link to the latest Typo3 Source Directory (last tried was: '.
+			$this->error('Could not find the link to the latest TYPO3 Source Directory (last tried was: '.
 				$this->typo3SourceDir.'latest! '.
 				'The option -s could be used to provide a hint.');
 			$this->errors++;
@@ -218,9 +219,9 @@ class site_installer	{
 			$this->errors++;
 		}
 
-		if ( ! file_exists( $this->destinationDir.'/index.php')) {
+		if ( ! file_exists( $this->destinationDir.'index.php')) {
 			$this->error('Site seems to be incorrect (missing '.
-				$this->destinationDir.'/index.php)!');
+				$this->destinationDir.'index.php)!');
 			$this->errors++;
 
 			$this->info('The directory you tried to use was:'."\n".
@@ -320,7 +321,8 @@ EOF
 
     fi
 */
-	}
+        }
+    
 
 	/**
 	 * fix symlinks
@@ -338,17 +340,19 @@ EOF
 	 * (symbolic links are ignored!)
 	 */
 	function setToOwnerGroupRecursive($dir)	{
-		$this->debug(0, 'setToOwnerGroupRecursive: ', $dir, "\n");
+            	$dir = getDirWithFinalSlash($dir);
+		$this->debug(2, 'setToOwnerGroupRecursive: ', $dir, "\n");
 		$result = true;
 
 			// Open a known directory, and proceed to read its contents
 		if (is_dir($dir)) {
-			if ($dh = opendir($dir)) {
+			if (($dh = opendir($dir)) !== false) {
 				while (($file = readdir($dh)) !== false) {
-					if (($file == '.') || ($file == '..'))	continue;
+					if (empty($file) || ($file == '.') || ($file == '..'))	continue;
 
-					$filetype = filetype($dir.$file);
-					if ($filetype == 'link')	continue;
+					if (($filetype = filetype($dir.$file)) === false)
+                                            	continue;
+					if (empty($filetype) || ($filetype == 'link'))	continue;
 
 					if (($filetype == 'file') || ($filetype == 'dir')) {
 						if ($filetype == 'dir') {
@@ -399,22 +403,24 @@ EOF
 	 * (symbolic links are ignored!)
 	 */
 	function setDirFileModeRecursive($dir, $dirmod, $filemod)	{
-		$this->debug(0, 'setToOwnerGroupRecursive: ', $dir, "\n");
+    		$dir = getDirWithFinalSlash($dir);
+    		$this->debug(2, 'setToOwnerGroupRecursive: '.$dir);
 		$result = true;
 
 			// Open a known directory, and proceed to read its contents
 		if (is_dir($dir)) {
 			if ($dh = opendir($dir)) {
 				while (($file = readdir($dh)) !== false) {
-					if (($file == '.') || ($file == '..'))	continue;
+					if (empty($file) || ($file == '.') || ($file == '..'))	continue;
 
-					$filetype = filetype($dir.$file);
+					if (($filetype = filetype($dir.$file)) === false)
+                                            	continue;
 					if ($filetype == 'link')	continue;
 
 					if (($filetype == 'file') || ($filetype == 'dir')) {
 						if ($filetype == 'dir') {
 							$this->setDirMode($dir, $file, $dirmod);
-							$this->setDirFileModeRecursive($dir.$file);
+							$this->setDirFileModeRecursive($dir.$file, $dirmod, $filemod);
 						} else {
 							$this->setFileMode($dir, $file, $filemod);
 						}
@@ -438,7 +444,7 @@ EOF
 
 
 	function setFileMode($dir, $file, $filemod)	{
-		$this->debug(0, 'setFileMode: ', $dir, "\n");
+		$this->debug(2, 'setFileMode: ', $dir, "\n");
 		$result = true;
 
 		if (file_exists($dir.$file)) {
@@ -459,7 +465,7 @@ EOF
 	}
 
 	function setDirMode($dir, $file, $dirmod)	{
-		$this->debug(0, 'setDirMode: ', $dir, "\n");
+		$this->debug(2, 'setDirMode: ', $dir, "\n");
 		$result = true;
 
 		if (is_dir($dir.$file)) {
@@ -510,7 +516,7 @@ EOF
 			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3conf/', 0770, 0660);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3temp/', 0770, 0660);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'uploads/', 0770, 0660);
-			$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
+			if (file_exists($this->getDestinationDir().'changelog'))	$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
 
 		} else {
 
@@ -520,7 +526,7 @@ EOF
 			chmod 600 $this->getDestinationDir()/changelog
 			*/
 			$this->setDirFileModeRecursive($this->getDestinationDir(), 0777, 0666);
-			$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
+			if (file_exists($this->getDestinationDir().'changelog'))	$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
 
 			$this->info('=============================================================================='."\n".
 				'You are not logged in as root.'."\n".
@@ -548,8 +554,8 @@ EOF
 			"\n".
 			'Next, the following steps are neccessary:'."\n".
 			"\n".
-			'  * In ".$this->typo3SourceDir."typo3/install/index.php:'."\n".
-			'    Commenting out line 40 (the \'die()\' function call)'."\n".
+			'  * In '.$this->destinationDir.'typo3/install/index.php:'."\n".
+			'    Commenting out line 45 (the \'die()\' function call)'."\n".
 			'  * Using a browser to point to the location just created and to complete the setup'."\n".
 			'  * Removing the comment from above'."\n".
 			"\n".
@@ -610,6 +616,7 @@ EOF
 	function debug($level, $msg)	{
 		global $debug;
 		if ($debug > $level)	$this->errmsg .= 'Debug: '.$msg."\n";
+                //echo  'Debug: '.$msg."\n";
 	}
 }
 

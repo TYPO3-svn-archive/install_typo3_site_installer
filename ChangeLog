@@ -1,3 +1,11 @@
+2004-11-23  Christian Leutloff  <leutloff@debian.org>
+
+	* include/class.site_installer.php: set dryrun to false
+	* include/class.site_installer.php: bugs fixed:
+	setToOwnerGroupRecursive and setDirFileModeRecursive add trailing
+	slash if needed
+	* fix permissions is now expected to work fine
+
 2004-11-13  Michael Stucki  <michael@typo3.org>
 
 	* Moved TODO file into doc/ directory

@@ -16,7 +16,7 @@ export DH_COMPAT=4
 export DH_OPTIONS
 
 PACKAGENAME=typo3-site-installer
-T3INSTALLERDIR=usr/share/typo3/$(PACKAGENAME)
+T3INSTALLERDIR=usr/share/$(PACKAGENAME)
 
 
 build: build-stamp
@@ -32,6 +32,7 @@ clean:
 	rm -f build-stamp	
 # 	Add here commands to clean up after the build process.
 	dh_clean 
+# tar cfvz ../typo3-site-installer_0.8.orig.tar.gz --exclude='CVS' --exclude='semantic.cache' ; debuild -i
 
 install: build
 	dh_testdir
@@ -59,7 +60,7 @@ binary-indep: build install
 
 
 	dh_install typo3-site-installer usr/sbin
-	dh_install include/class.site-installer.php $(T3INSTALLERDIR)
+	dh_install include/class.site_installer.php $(T3INSTALLERDIR)
 #	dh_installmenu
 #	dh_installdebconf	
 #	dh_installlogrotate

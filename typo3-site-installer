@@ -35,17 +35,21 @@
  * @author	Sven Wilhelm <wilhelm@icecrash.com>
  * @author	Michael Stucki <michael@typo3.org>
  */
-$debug = 1;
+//$debug = 1; error_reporting(E_ALL);
+$debug = 0; error_reporting(E_NONE);
 
-if ($debug > 0)	error_reporting(E_ALL);	// Enable debugging
-else	error_reporting(E_NONE);	// TODO: Please remove this line. $debug=0 (default) doesn't mean "no debugging", it means "use default setting", right?!
 
 require_once('Console/Getopt.php');
 
-if (file_exists('include/class.site_installer.php')) {
-	$INCLUDE_DIR = 'include/';
-} else {
-	$INCLUDE_DIR = '/usr/share/typo3/typo3-site-installer/';
+// FIXME get actual path from the environment and set the include dir
+// correctly
+$INCLUDE_DIR = 'include/';
+if (!file_exists($INCLUDE_DIR.'class.site_installer.php')) {
+    	$INCLUDE_DIR = dirname($_SERVER['SCRIPT_FILENAME']).'/include/';
+    	if (!file_exists($INCLUDE_DIR.'class.site_installer.php')) {
+            	$INCLUDE_DIR = '/usr/share/typo3-site-installer/';
+                if (!file_exists($INCLUDE_DIR.'class.site_installer.php')) die('Could not determine the path to include class.site_installer.php!!'."\n");
+        }
 }
 
 	// Include the base class and start
@@ -59,7 +63,7 @@ function printVersion()	{
 	global $debug;
 
 	echo "\n";
-	echo 'typo3-site-installer, v0.1, 06.11.04' ;
+	echo 'typo3-site-installer, v0.8, 23.11.04' ;
 	if ($debug > 0)	echo ", Debugging enabled";
 	echo "\n";
 }
@@ -89,6 +93,7 @@ typo3-site-installer helps to install fresh TYPO3 sites
 	echo "
     -r, --root <DIR>           root directory (Default: '/')
     -n, --dry-run [false]      dry-run (Default: true)
+    --debug                    Increase debugging level by one
     -h, -?, --help             Display this help
     -v, --version              Display version of this script
 
@@ -102,22 +107,23 @@ typo3-site-installer helps to install fresh TYPO3 sites
 /**
  * parse the command line
  */
-function parseOptions($theSiteInstaller)	{
+function parseOptions($theSiteInstaller) {
 	global $debug;
 
 	$shortoptions='ad:fg:hnr:s:u:v?';
 	$longoptions=array("always-latest",
-			"destination=",
-			"dry-run",
-			"dry-run=",
-			"fix-permissions",
-			"group=",
-			"root=",
-			"t3source=",
-			"user=",
-			"help",
-			"version");
-
+                           "debug",
+                           "destination=",
+                           "dry-run",
+                           "dry-run=",
+                           "fix-permissions",
+                           "group=",
+                           "root=",
+                           "t3source=",
+                           "user=",
+                           "help",
+                           "version");
+        
 	$con = new Console_Getopt;
 	$args = $con->readPHPArgv();
 	array_shift($args);
@@ -167,6 +173,10 @@ function parseOptions($theSiteInstaller)	{
 			case 'g':
 			case '--group':
 				$theSiteInstaller->setWWWGroup($opt[1]);
+			break;
+
+			case '--debug':
+				$debug++;
 			break;
 
 			case 'n':

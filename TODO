@@ -1,0 +1,10 @@
+TODO
+====
+
+- build database structure
+
+- load the required SQL from typo3.org (if Debian package is not
+  provided)
+
+- check for appropriate apache and php configuration  
+
