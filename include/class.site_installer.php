@@ -358,7 +358,7 @@ EOF
 					if (($filetype = filetype($dir.$file)) === false)
                                             	continue;
                                         $dirfile = $dir.$file;
-					if ($filetype == 'link') {  // follow the sym link
+					if ($filetype == 'link') {  // follow the (relative!) sym link
                                             do {
                                                 $dirfile = $dir.readlink($dirfile);
                                             } while  ((!empty($dirfile)) && ($filetype = filetype($dirfile)) === 'link');
@@ -534,6 +534,35 @@ EOF
 			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3conf/', 0770, 0660);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3temp/', 0770, 0660);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'uploads/', 0770, 0660);
+
+                        /* not necessary anymore
+                        // search and fix
+                        // localconf.php explicitly - should normally
+                        // handled through the above commands
+                        $thelocalconf=$this->getDestinationDir().'typo3conf/localconf.php';
+                        if (filetype($thelocalconf) === 'link') {
+                            $therealconf = $this->getDestinationDir().'typo3conf/'.readlink($thelocalconf);
+                            $this->setToOwnerGroup($therealconf);
+                            $this->setFileMode($therealconf, 0660);
+                        }
+                        */
+                        // FIXME: WORKAROUND search and fix
+                        // database.sql explicitly - should normally
+                        // handled through the above commands
+                        $sqlnames = array('dummy.sql', 'quickstart.sql', 'testsite.sql');
+                        foreach ($sqlnames as $key => $sqlname) {
+                            $thelocalsql=$this->getDestinationDir().'typo3conf/'.$sqlname;
+                            if (filetype($thelocalsql) === 'link') {
+                                $therealsql = readlink($thelocalsql);
+                                if (!file_exists($therealsql))
+                                    $therealsql = $this->getDestinationDir().'typo3conf/'.readlink($thelocalsql);
+                                if (file_exists($therealsql)) {
+                                    $this->setToOwnerGroup($therealsql);
+                                    $this->setFileMode($therealsql, 0660);
+                                }
+                            }
+                        }
+                        
 			if (file_exists($this->getDestinationDir().'changelog'))	$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
 
 		} else {
@@ -567,7 +596,9 @@ EOF
 			'Finished. But there is still something to do:'."\n".
 			"\n".
 			'First: It has to be ensured that '.$this->destinationDir.' is accessable through the webserver.'."\n".
-			'(Move this directory to /var/www/ if you do not know what to do.)'."\n".
+			'(On a Debian system more information is available in /usr/share/typo3/README.Debian. '."\n".
+			'If nothing distribution specific is provided and you do  not know what to do, '."\n".
+			'a solution may be to move this directory to /var/www/. )'."\n".
 			"\n".
 			"\n".
 			'Next, the following steps are neccessary:'."\n".

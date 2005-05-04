@@ -63,7 +63,7 @@ function printVersion()	{
 	global $debug;
 
 	echo "\n";
-	echo 'typo3-site-installer, v0.81, 22.04.05' ;
+	echo 'typo3-site-installer, v0.83, 04.05.05' ;
 	if ($debug > 0)	echo ", Debugging enabled";
 	echo "\n";
 }

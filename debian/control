@@ -8,8 +8,8 @@ Standards-Version: 3.6.1
 Package: typo3-site-installer
 Architecture: all
 Depends: php4-cli (>= 4:4.3.9-1), php4-pear (>= 4:4.3.9-1)
-Recommends: typo3-source | typo3-source-3-7
-Suggests: typo3 | typo3-frontend, typo3-db-dummy | typo3-db-quickstart | typo3-db-testsite
+Recommends: typo3-src-3.7 | typo3-src
+Suggests: typo3, typo3-dummy | typo3-quickstart | typo3-testsite
 Description: TYPO3 site installer
  This package contains a small PHP script that ease the setup of an
  initial TYPO3 site.
