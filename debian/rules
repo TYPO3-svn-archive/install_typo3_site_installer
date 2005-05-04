@@ -1,5 +1,9 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
+#
+# build this package with:
+# chmod -x include/class.site_installer.php && debuild -ICVS -Isemantic.cache -I.cvsignore
+#
 # Sample debian/rules that uses debhelper.
 # This file was originally written by Joey Hess and Craig Small.
 # As a special exception, when this file is copied by dh-make into a
@@ -33,10 +37,6 @@ clean:
 	rm -f build-stamp	
 # 	Add here commands to clean up after the build process.
 	dh_clean 
-
-package: clean
-	tar cfvz ../typo3-site-installer_$(PACKAGEVERSION).orig.tar.gz --exclude='CVS' --exclude='semantic.cache' --exclude='.cvsignore'
-#	debuild -i
 
 install: build
 	dh_testdir
