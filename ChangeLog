@@ -2,6 +2,10 @@
 
  * Simply added an interesting URL to doc/advanced.htaccess
 
+2004-11-24  Christian Leutloff  <leutloff@debian.org>
+
+ * include/class.site_installer.php: follow symlink to change owner
+
 2004-11-23  Christian Leutloff  <leutloff@debian.org>
 
  * include/class.site_installer.php: set dryrun to false

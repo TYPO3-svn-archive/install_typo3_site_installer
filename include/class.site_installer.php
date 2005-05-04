@@ -103,10 +103,16 @@ class site_installer	{
 		return $this->destinationDir;
 	}
 
-	function setSourceDir($value)	{
+
+        function setSourceDir($value)	{
 		$this->typo3SourceDir = getDirWithFinalSlash($value);
 		$this->debug(1, 'setSourceDir: typo3SourceDir dir: '.$this->typo3SourceDir.'--'.$value);
 	}
+    
+	function getSourceDir()	{
+		return $this->sourceDir;
+	}
+
 
 	function setRootDir($value)	{
 		$this->rootDir = getDirWithFinalSlash($value);
@@ -349,24 +355,29 @@ EOF
 			if (($dh = opendir($dir)) !== false) {
 				while (($file = readdir($dh)) !== false) {
 					if (empty($file) || ($file == '.') || ($file == '..'))	continue;
-
 					if (($filetype = filetype($dir.$file)) === false)
                                             	continue;
-					if (empty($filetype) || ($filetype == 'link'))	continue;
-
-					if (($filetype == 'file') || ($filetype == 'dir')) {
+                                        $dirfile = $dir.$file;
+					if ($filetype == 'link') {  // follow the sym link
+                                            do {
+                                                $dirfile = $dir.readlink($dirfile);
+                                            } while  ((!empty($dirfile)) && ($filetype = filetype($dirfile)) === 'link');
+                                            if (empty($dirfile) || ($filetype === false))
+                                            	continue;
+                                        }
+                                        
+                                        if (($filetype == 'file') || ($filetype == 'dir')) {
 						if ($filetype == 'dir') {
-							$this->setToOwnerGroup($dir, $file);
-							$this->setToOwnerGroupRecursive($dir.$file);
+							$this->setToOwnerGroup($dirfile);
+							$this->setToOwnerGroupRecursive($dirfile);
 						} else {
-							$this->setToOwnerGroup($dir, $file);
+							$this->setToOwnerGroup($dirfile);
 						}
-					} else {
+                                        } else {
 						$this->warn('Unexpected filetype '.$filetype.
-							' from file '.$dir.$file);
-					}
+							' from file '.$dirfile);
+                                        }
 				}
-
 				closedir($dh);
 			}
 		} else {
@@ -377,30 +388,31 @@ EOF
 		return $result;
 	}
 
-	function setToOwnerGroup($dir, $file)	{
+        /**
+         * set Owner and Group of the given file (including the paht)
+         */
+	function setToOwnerGroup($dirfile)	{
 		$result = true;
 
 		if ($this->dryrun == true) {
-			$this->info('chown '.$this->wwwuser.':'.$this->wwwgroup.' '.$dir.$file);
+			$this->info('chown '.$this->wwwuser.':'.$this->wwwgroup.' '.$dirfile);
 		} else {
-			if (!chown($dir.$file, $this->wwwuser)) {
-				$this->error('chown '.$this->wwwuser.' '.$dir.$file.' failed!');
+			if (!chown($dirfile, $this->wwwuser)) {
+				$this->error('chown '.$this->wwwuser.' '.$dirfile.' failed!');
 				$result = false;
 			}
 
-			if (!chgrp($dir.$file, $this->wwwgroup)) {
-				$this->error('chgrp '.$this->wwwgroup.' '.$dir.$file.' failed!');
+			if (!chgrp($dirfile, $this->wwwgroup)) {
+				$this->error('chgrp '.$this->wwwgroup.' '.$dirfile.' failed!');
 				$result = false;
 			}
 		}
-
 		return $result;
 	}
 
 	/**
 	 * search trough the directory including the sub directories and set
 	 * the owner and the group of the files and directories
-	 * (symbolic links are ignored!)
 	 */
 	function setDirFileModeRecursive($dir, $dirmod, $filemod)	{
     		$dir = getDirWithFinalSlash($dir);
@@ -415,18 +427,25 @@ EOF
 
 					if (($filetype = filetype($dir.$file)) === false)
                                             	continue;
-					if ($filetype == 'link')	continue;
+                                        $dirfile = $dir.$file;
+                                        if ($filetype == 'link') {  // follow the sym link
+                                            do {
+                                                $dirfile = $dir.readlink($dirfile);
+                                            } while  ((!empty($dirfile)) && ($filetype = filetype($dirfile)) === 'link');
+                                            if (empty($dirfile) || ($filetype === false))
+                                            	continue;
+                                        }
 
 					if (($filetype == 'file') || ($filetype == 'dir')) {
 						if ($filetype == 'dir') {
-							$this->setDirMode($dir, $file, $dirmod);
-							$this->setDirFileModeRecursive($dir.$file, $dirmod, $filemod);
+							$this->setDirMode($dirfile, $dirmod);
+							$this->setDirFileModeRecursive($dirfile, $dirmod, $filemod);
 						} else {
-							$this->setFileMode($dir, $file, $filemod);
+							$this->setFileMode($dirfile, $filemod);
 						}
 					} else {
 						$this->warn('Unexpected filetype '.$filetype.
-							' from file '.$dir.$file);
+							' from file '.$dirfile);
 					}
 				}
 
@@ -443,44 +462,44 @@ EOF
 	}
 
 
-	function setFileMode($dir, $file, $filemod)	{
-		$this->debug(2, 'setFileMode: ', $dir, "\n");
+	function setFileMode($dirfile, $filemod)	{
+		$this->debug(2, 'setFileMode: ', $dirfile, "\n");
 		$result = true;
 
-		if (file_exists($dir.$file)) {
+		if (file_exists($dirfile)) {
 			if ($this->dryrun == true) {
-				$this->info('chmod '.$filemod.' '.$dir.$file);
+				$this->info('chmod '.$filemod.' '.$dirfile);
 			} else {
-				if (!chmod($dir.$file, $filemod)) {
-					$this->error('chmod '.$filemod.' '.$dir.$file.' failed!');
+				if (!chmod($dirfile, $filemod)) {
+					$this->error('chmod '.$filemod.' '.$dirfile.' failed!');
 					$result = false;
 				}
 			}
 		} else {
-			$this->error('chmod '.$filemod.' '.$dir.$file.' failed, because file does not exist!');
+			$this->error('chmod '.$filemod.' '.$dirfile.' failed, because file does not exist!');
 			$result = false;
 		}
 
 		return $result;
 	}
 
-	function setDirMode($dir, $file, $dirmod)	{
-		$this->debug(2, 'setDirMode: ', $dir, "\n");
+	function setDirMode($dirfile, $dirmod)	{
+		$this->debug(2, 'setDirMode: ', $dirfile, "\n");
 		$result = true;
 
-		if (is_dir($dir.$file)) {
+		if (is_dir($dirfile)) {
 			if ($this->dryrun == true) {
-				$this->info('chmod '.$dirmod.' '.$dir.$file);
+				$this->info('chmod '.$dirmod.' '.$dirfile);
 			} else {
-				if (!chmod($dir.$file, $dirmod)) {
-					$this->error('chmod '.$dirmod.' '.$dir.$file.' failed!');
+				if (!chmod($dirfile, $dirmod)) {
+					$this->error('chmod '.$dirmod.' '.$dirfile.' failed!');
 					$result = false;
 				}
 			}
 
 		} else {
 
-			$this->error('chmod '.$dirmod.' '.$dir.$file.' failed, because it is not a directory!');
+			$this->error('chmod '.$dirmod.' '.$dirfile.' failed, because it is not a directory!');
 			$result = false;
 		}
 
@@ -509,7 +528,6 @@ EOF
 			chmod -R g+w $this->getDestinationDir()/typo3temp
 			chmod -R g+w $this->getDestinationDir()/uploads
 			*/
-
 			$this->setToOwnerGroupRecursive($this->getDestinationDir());
 			$this->setDirFileModeRecursive($this->getDestinationDir(), 0750, 0640);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'fileadmin/', 0770, 0660);

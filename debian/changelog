@@ -1,3 +1,9 @@
+typo3-site-installer (0.81) unstable; urgency=low
+
+  * cosmetic changes only
+
+ -- Christian Leutloff <leutloff@debian.org>  Fri, 22 Apr 2005 18:20:26 +0200
+  
 typo3-site-installer (0.8) unstable; urgency=low
   
   * "fix permissions" are now working

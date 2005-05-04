@@ -16,6 +16,7 @@ export DH_COMPAT=4
 export DH_OPTIONS
 
 PACKAGENAME=typo3-site-installer
+PACKAGEVERSION=$(shell head --lines=1 debian/changelog | cut -d '(' -f 2 | cut -d ')' -f 1)
 T3INSTALLERDIR=usr/share/$(PACKAGENAME)
 
 
@@ -32,7 +33,10 @@ clean:
 	rm -f build-stamp	
 # 	Add here commands to clean up after the build process.
 	dh_clean 
-# tar cfvz ../typo3-site-installer_0.8.orig.tar.gz --exclude='CVS' --exclude='semantic.cache' ; debuild -i
+
+package: clean
+	tar cfvz ../typo3-site-installer_$(PACKAGEVERSION).orig.tar.gz --exclude='CVS' --exclude='semantic.cache' --exclude='.cvsignore'
+#	debuild -i
 
 install: build
 	dh_testdir
