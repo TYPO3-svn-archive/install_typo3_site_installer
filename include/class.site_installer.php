@@ -336,14 +336,13 @@ EOF
 	function fixSymlinks()	{
 		/*
 			// Point typo3_src to /var/lib/typo3/latest
-		if [ $useAlwaysLatest == 1 ]; then $TYPO3_SOURCE=/var/lib/typo3/latest; fi
+		if [ $useAlwaysLatest == 1 ]; then $TYPO3_SOURCE=/usr/share/typo3/latest; fi
 		*/
 	}
 
 	/**
 	 * search trough the directory including the sub directories and set
 	 * the owner and the group of the files and directories
-	 * (symbolic links are ignored!)
 	 */
 	function setToOwnerGroupRecursive($dir)	{
             	$dir = getDirWithFinalSlash($dir);
@@ -354,29 +353,21 @@ EOF
 		if (is_dir($dir)) {
 			if (($dh = opendir($dir)) !== false) {
 				while (($file = readdir($dh)) !== false) {
-					if (empty($file) || ($file == '.') || ($file == '..'))	continue;
-					if (($filetype = filetype($dir.$file)) === false)
-                                            	continue;
+                                        if (!$this->isHandlebarFile($dir, $file))	continue;
                                         $dirfile = $dir.$file;
-					if ($filetype == 'link') {  // follow the (relative!) sym link
-                                            do {
-                                                $dirfile = $dir.readlink($dirfile);
-                                            } while  ((!empty($dirfile)) && ($filetype = filetype($dirfile)) === 'link');
-                                            if (empty($dirfile) || ($filetype === false))
-                                            	continue;
-                                        }
-                                        
-                                        if (($filetype == 'file') || ($filetype == 'dir')) {
-						if ($filetype == 'dir') {
+                                        $this->debug(3, 'setToOwnerGroupRecursive dirfile: ', $dirfile, "\n");
+                                        $dirfile = $this->followLink($dir, $dirfile);
+                                        if ($dirfile === false)
+                                            continue;
+                                        if ((is_file($dirfile)) || (is_dir($dirfile))) {
+						if (is_dir($dirfile)) {
 							$this->setToOwnerGroup($dirfile);
 							$this->setToOwnerGroupRecursive($dirfile);
 						} else {
 							$this->setToOwnerGroup($dirfile);
 						}
-                                        } else {
-						$this->warn('Unexpected filetype '.$filetype.
-							' from file '.$dirfile);
-                                        }
+                                        } else
+                                            $this->warn('Unexpected type of file for file '.$dirfile.'. Should not happen.');
 				}
 				closedir($dh);
 			}
@@ -416,37 +407,29 @@ EOF
 	 */
 	function setDirFileModeRecursive($dir, $dirmod, $filemod)	{
     		$dir = getDirWithFinalSlash($dir);
-    		$this->debug(2, 'setToOwnerGroupRecursive: '.$dir);
+    		$this->debug(2, 'setDirFileModeRecursive: '.$dir);
 		$result = true;
 
 			// Open a known directory, and proceed to read its contents
 		if (is_dir($dir)) {
 			if ($dh = opendir($dir)) {
 				while (($file = readdir($dh)) !== false) {
-					if (empty($file) || ($file == '.') || ($file == '..'))	continue;
-
-					if (($filetype = filetype($dir.$file)) === false)
-                                            	continue;
+                                        if (!$this->isHandlebarFile($dir, $file))	continue;
                                         $dirfile = $dir.$file;
-                                        if ($filetype == 'link') {  // follow the sym link
-                                            do {
-                                                $dirfile = $dir.readlink($dirfile);
-                                            } while  ((!empty($dirfile)) && ($filetype = filetype($dirfile)) === 'link');
-                                            if (empty($dirfile) || ($filetype === false))
-                                            	continue;
-                                        }
+                                        $this->debug(3, 'setDirFileModeRecursive dirfile: ', $dirfile, "\n");
+                                        $dirfile = $this->followLink($dir, $dirfile);
+                                        if ($dirfile === false)
+                                            continue;
 
-					if (($filetype == 'file') || ($filetype == 'dir')) {
-						if ($filetype == 'dir') {
+                                        if ((is_file($dirfile)) || (is_dir($dirfile))) {
+						if (is_dir($dirfile)) {
 							$this->setDirMode($dirfile, $dirmod);
 							$this->setDirFileModeRecursive($dirfile, $dirmod, $filemod);
 						} else {
 							$this->setFileMode($dirfile, $filemod);
 						}
-					} else {
-						$this->warn('Unexpected filetype '.$filetype.
-							' from file '.$dirfile);
-					}
+					} else 
+                                            $this->warn('Unexpected type of file for file '.$dirfile.'. Should not happen.');
 				}
 
 				closedir($dh);
@@ -462,13 +445,16 @@ EOF
 	}
 
 
+        /**
+         * change mode of a file.
+         */
 	function setFileMode($dirfile, $filemod)	{
 		$this->debug(2, 'setFileMode: ', $dirfile, "\n");
 		$result = true;
 
 		if (file_exists($dirfile)) {
 			if ($this->dryrun == true) {
-				$this->info('chmod '.$filemod.' '.$dirfile);
+                            $this->info('chmod '.decoct($filemod).' '.$dirfile);
 			} else {
 				if (!chmod($dirfile, $filemod)) {
 					$this->error('chmod '.$filemod.' '.$dirfile.' failed!');
@@ -479,34 +465,96 @@ EOF
 			$this->error('chmod '.$filemod.' '.$dirfile.' failed, because file does not exist!');
 			$result = false;
 		}
-
 		return $result;
 	}
 
+
+        /**
+         * change mode of a directory.
+         */
 	function setDirMode($dirfile, $dirmod)	{
 		$this->debug(2, 'setDirMode: ', $dirfile, "\n");
 		$result = true;
 
 		if (is_dir($dirfile)) {
 			if ($this->dryrun == true) {
-				$this->info('chmod '.$dirmod.' '.$dirfile);
+				$this->info('chmod '.decoct($dirmod).' '.$dirfile);
 			} else {
 				if (!chmod($dirfile, $dirmod)) {
 					$this->error('chmod '.$dirmod.' '.$dirfile.' failed!');
 					$result = false;
 				}
 			}
-
 		} else {
 
-			$this->error('chmod '.$dirmod.' '.$dirfile.' failed, because it is not a directory!');
+			$this->error('chmod '.$dirmod.' '.$dirfile.' not changed, because it is not a directory!');
 			$result = false;
 		}
-
 		return $result;
 	}
 
 
+        /**
+         * return true, if directory should be ommitted (like /usr/bin/
+         * or /usr/sbin/)
+         * no directory with the above sequence is allowed!
+         */
+        function isDontTouchDir($dirfile) {
+            $donttouchdirs = array('/bin/', '/sbin/'); // matches '/usr/bin/', '/usr/sbin/', '/usr/local/bin/', '/usr/local/sbin/', too
+            foreach ($donttouchdirs as $key => $donttouchdir) {   
+                if (strpos($dirfile, $donttouchdir) !== false) return true;
+            }
+        }
+
+    
+
+        /**
+         * return true, if file should be processed further
+         */
+        function isHandlebarFile($dir, $file) {
+            if (empty($file) || ($file == '.') || ($file == '..'))	return false;
+
+            $dirfile = $dir.$file;
+            if (!(is_file($dirfile) || is_dir($dirfile) || is_link($dirfile))) {
+                if (!file_exists($dirfile))
+                    $this->warn('File '.$dirfile.' does not exist. This is should not happen.'. 
+                                ' Please fix the symbolic link and rerun this script.');
+                else
+                    $this->warn('Unexpected type of file for '.$dirfile.
+                                '. This is should be handled in the script.');
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * follows the link if it is one
+         */
+        function followLink($dir, $dirfile) {
+            if (!is_link($dirfile))
+                return $dirfile;
+            
+            do {
+                $tmplink = readlink($dirfile);
+                if ($tmplink[0] === '/') // absolute link
+                    $dirfile = $tmplink;
+                else
+                    $dirfile = $dir.$tmplink;
+                if ($this->isDontTouchDir($dirfile)) {
+                    $this->info('The file or directory '.$dirfile.
+                                ' is intentionally ommited.');
+                    return false;
+                }
+            } while  ((!empty($dirfile)) && (is_link($dirfile)));
+            if (empty($dirfile)) {
+                $this->warn('Empty file name '.$dirfile.' is unusual.'.
+                            ' Please fix the directory layout.');
+                return false;
+            }
+            return $dirfile;
+        }
+    
+    
 	/**
 	 * fix some permissions
 	 */
@@ -534,34 +582,6 @@ EOF
 			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3conf/', 0770, 0660);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'typo3temp/', 0770, 0660);
 			$this->setDirFileModeRecursive($this->getDestinationDir().'uploads/', 0770, 0660);
-
-                        /* not necessary anymore
-                        // search and fix
-                        // localconf.php explicitly - should normally
-                        // handled through the above commands
-                        $thelocalconf=$this->getDestinationDir().'typo3conf/localconf.php';
-                        if (filetype($thelocalconf) === 'link') {
-                            $therealconf = $this->getDestinationDir().'typo3conf/'.readlink($thelocalconf);
-                            $this->setToOwnerGroup($therealconf);
-                            $this->setFileMode($therealconf, 0660);
-                        }
-                        */
-                        // FIXME: WORKAROUND search and fix
-                        // database.sql explicitly - should normally
-                        // handled through the above commands
-                        $sqlnames = array('dummy.sql', 'quickstart.sql', 'testsite.sql');
-                        foreach ($sqlnames as $key => $sqlname) {
-                            $thelocalsql=$this->getDestinationDir().'typo3conf/'.$sqlname;
-                            if (filetype($thelocalsql) === 'link') {
-                                $therealsql = readlink($thelocalsql);
-                                if (!file_exists($therealsql))
-                                    $therealsql = $this->getDestinationDir().'typo3conf/'.readlink($thelocalsql);
-                                if (file_exists($therealsql)) {
-                                    $this->setToOwnerGroup($therealsql);
-                                    $this->setFileMode($therealsql, 0660);
-                                }
-                            }
-                        }
                         
 			if (file_exists($this->getDestinationDir().'changelog'))	$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
 
@@ -596,7 +616,7 @@ EOF
 			'Finished. But there is still something to do:'."\n".
 			"\n".
 			'First: It has to be ensured that '.$this->destinationDir.' is accessable through the webserver.'."\n".
-			'(On a Debian system more information is available in /usr/share/typo3/README.Debian. '."\n".
+			'(On a Debian system more information is available in /usr/share/doc/typo3/README.Debian.gz. '."\n".
 			'If nothing distribution specific is provided and you do  not know what to do, '."\n".
 			'a solution may be to move this directory to /var/www/. )'."\n".
 			"\n".
@@ -608,34 +628,13 @@ EOF
 			'  * Using a browser to point to the location just created and to complete the setup'."\n".
 			'  * Removing the comment from above'."\n".
 			"\n".
-			'Note: the image settings should already be optimized for Debian Woody.'."\n".
+			'Note: the image settings should already be optimized for Debian Woody/Sarge and Ubuntu Hoary.'."\n".
 			"\n".
 			'Make sure to read the README file for later install instructions.'."\n".
 			'=============================================================================='."\n");
 
 		if ($this->dryrun == true)	$this->info('Nothing done - Program executed as dry run.');
 		else			$this->info('Successfully done');
-	}
-
-	/**
-	 * execute the necesssary functions - main method
-	 */
-	function doActions()	{
-		if ($this->fixPermissions) {
-			$this->fix_permissions();
-		} else {
-			$this->install_site();
-			$this->fix_permissions();
-		}
-
-		/*
-		 * Todo: Run the site fetcher
-		 *
-		require($INCLUDE_DIR.'class.site_fetcher.php');
-		$fetcher = new site_fetcher;
-		$res = $fetcher->fetch_site('3.6.2', 'dummy');
-		*/
-		$this->abortIfErrors();
 	}
 
 	/**
@@ -658,7 +657,7 @@ EOF
 	function info($msg)	{
 		$this->errmsg .= $msg."\n";
 	}
-
+    
 	/**
 	 * register msg for output, if $debug > $level
 	 */
@@ -667,6 +666,32 @@ EOF
 		if ($debug > $level)	$this->errmsg .= 'Debug: '.$msg."\n";
                 //echo  'Debug: '.$msg."\n";
 	}
+
+    
+       /**
+	 * execute the necesssary functions - main method
+	 */
+	function doActions()	{
+		if ($this->fixPermissions) {
+			$this->fix_permissions();
+		} else {
+			$this->install_site();
+			$this->fix_permissions();
+		}
+
+		/*
+		 * Todo: Run the site fetcher
+		 *
+
+		require($INCLUDE_DIR.'class.site_fetcher.php');
+		$fetcher = new site_fetcher;
+		$res = $fetcher->fetch_site('3.6.2', 'dummy');
+
+cat /usr/src/typo3-testsite-3.7.0/debian/append2localconf.php | sed -e 's/typo3-testsite/typo3-quickstart/g' > debian/append2localconf.php
+		*/
+		$this->abortIfErrors();
+	}
+
 }
 
 ?>

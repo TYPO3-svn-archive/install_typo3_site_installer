@@ -1,3 +1,15 @@
+typo3-site-installer (0.90) unstable; urgency=low
+
+  * typo3-site-installer: disable debug mode
+  * include/class.site_installer.php: reworked to follow absolute links,
+    too
+  * Removed work arounds for search and fix permissions for localconf.php
+    and fix permissions for SQL database files
+  * include/class.site_installer.php: don't touch bin dirs, fixed dry-run
+    messages for change mode
+
+ -- Christian Leutloff <leutloff@debian.org>  Fri,  6 May 2005 12:11:46 +0200
+
 typo3-site-installer (0.83) unstable; urgency=low
 
   * fix permissions for SQL database files, too
