@@ -1,3 +1,10 @@
+typo3-site-installer (0.91) unstable; urgency=low
+
+  * include/class.site_installer.php: fix warning message while walking
+    through the directories
+
+ -- Christian Leutloff <leutloff@debian.org>  Fri,  6 May 2005 20:22:33 +0200
+
 typo3-site-installer (0.90) unstable; urgency=low
 
   * typo3-site-installer: disable debug mode

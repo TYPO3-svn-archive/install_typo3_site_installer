@@ -3,7 +3,8 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2004, 2005 Michael Stucki (michael@typo3.org), Christian Leutloff <leutloff@debian.org>
+*  (c) 2004, 2005 Michael Stucki (michael@typo3.org),
+*                 Christian Leutloff <leutloff@debian.org>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -63,7 +64,7 @@ function printVersion()	{
 	global $debug;
 
 	echo "\n";
-	echo 'typo3-site-installer, v0.90, 06.05.05' ;
+	echo 'typo3-site-installer, v0.91, 06.05.05' ;
 	if ($debug > 0)	echo ", Debugging enabled";
 	echo "\n";
 }
@@ -175,8 +176,11 @@ function parseOptions($theSiteInstaller) {
 				$theSiteInstaller->setWWWGroup($opt[1]);
 			break;
 
-			case '--debug':
+                        case '--debug':
+                           
 				$debug++;
+                                echo 'debuglevel: ', $debug, "\n";
+                                
 			break;
 
 			case 'n':

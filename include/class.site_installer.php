@@ -2,7 +2,8 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2004 Michael Stucki (michael@typo3.org)
+*  (c) 2004, 2005 Michael Stucki (michael@typo3.org),
+*                 Christian Leutloff <leutloff@debian.org>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -44,6 +45,13 @@ define('DEFAULT_DESTINATION_DIR', 'var/lib/typo3/');
 define('DEFAULT_WWW_USER', 'www-data');
 define('DEFAULT_WWW_GROUP', 'www-data');
 
+$defaulttemplate = array(
+    'T3INST_INSTALLTOOLPASSWORD' => 'bacb98acf97e0b6112b1d1b650b84971', // Default password is "joh316" 
+    'T3INST_SITENAME' => 'Blank DUMMY',
+    '' => '',
+    '' => '',
+    '' => '',
+    )
 
 /**
  * helper function: ensure that dirs ends with a slash
@@ -372,7 +380,7 @@ EOF
 				closedir($dh);
 			}
 		} else {
-			$this->error($dir.' is not a directory!');
+			$this->error($dir.' is not a directory! Should not happen.');
 			$result = false;
 		}
 
@@ -517,7 +525,7 @@ EOF
             $dirfile = $dir.$file;
             if (!(is_file($dirfile) || is_dir($dirfile) || is_link($dirfile))) {
                 if (!file_exists($dirfile))
-                    $this->warn('File '.$dirfile.' does not exist. This is should not happen.'. 
+                    $this->warn('File '.$dirfile.' does not exist. This should not happen.'. 
                                 ' Please fix the symbolic link and rerun this script.');
                 else
                     $this->warn('Unexpected type of file for '.$dirfile.
@@ -528,7 +536,8 @@ EOF
         }
 
         /**
-         * follows the link if it is one
+         * follows the link, if it is one.
+         * @returns the real file or directory
          */
         function followLink($dir, $dirfile) {
             if (!is_link($dirfile))
@@ -536,8 +545,10 @@ EOF
             
             do {
                 $tmplink = readlink($dirfile);
-                if ($tmplink[0] === '/') // absolute link
+                if ($tmplink[0] === '/') { // absolute link
                     $dirfile = $tmplink;
+                    if (is_link($dirfile)) $dir = getDirWithFinalSlash(dirname($dirfile));
+                }
                 else
                     $dirfile = $dir.$tmplink;
                 if ($this->isDontTouchDir($dirfile)) {
@@ -634,7 +645,7 @@ EOF
 			'=============================================================================='."\n");
 
 		if ($this->dryrun == true)	$this->info('Nothing done - Program executed as dry run.');
-		else			$this->info('Successfully done');
+		else			$this->info('Successfully done.');
 	}
 
 	/**

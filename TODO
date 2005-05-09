@@ -1,16 +1,103 @@
-TODO
-====
+typo3-site-installer - TODO
+===========================
+
+
+- install apache.conf from Templates (one template for virtualhosts,
+   one for a single host) for apache 1.3 and 2.0; enable safe sites
+   and reload apache (leutloff@debian.org is working on this,
+   09.05.05)
+
+
+- install localconf.php from Templates(leutloff@debian.org is working on this,
+   09.05.05)
+
+
+- My (Michael Stucki) idea was something like this inside of /etc/typo3/:
+
+   System-wide defaults: Default settings for each of these
+   products. File is included from site-localconf (sitewide default
+   configuration, see below).
+
+   - defaults/graphicsmagick.inc
+   - defaults/imagemagick4-2-9.inc
+   - defaults/imagemagick5-4-4.inc
+   - defaults/imagemagick6.inc
+   - defaults/gd-only.inc
+
+   Site-wide defaults: Default settings for one specific site
+   (e.g. database name, db user, etc.). Included from the top of
+   typo3conf/localconf.php.
+
+   - sites/www-mydomain-com.localconf.php
+   - sites/www.anotherdomain-ch.localconf.php
+
+   The idea of this is to have a completely modular site
+   configuration. A whole site can be backupped to another server with
+   different database connection settings but the configuration is
+   placed at the same position in the path.
+
+
+- create empty database and appropriate user in the MySQL-Server
+
+
+- use symlic to a concrete TYPO3 source version instead of the symlink
+   lastet
+
+
+- Reenable the site installation feature:
+
+   Move the remaining parts of a BASH script to PHP load the required
+   SQL from typo3.org (if Debian package is not provided)
+
+   Install (dummy, quickstart, testsite) as templates but not as
+   instances and use the site-installer to set them up.
+
+   Alloy multiple instances of the quickstart site running and
+   let web hosters use the typo3-site-installer.
+
+
+- site config files (located in /etc/typo3/?) to enable/disable both
+   install tool (as everything is already done correctly, the install
+   tool is disabled by default) and the whole backend with just two
+   lines.
+
+- set an initial password for the admin user of the backend
+
+- allow installation of multiple instances from the given packages
+   (dummy, quickstart, testsite)
+
+
+- get t3d from typo3.org (and save them as tar.gz and build then
+   appropiate Debian packages) - install dummy, quickstart, testsite
+   from t3d plus common extensions (Thomas Barth is working on this,
+   09.05.05)
+
+
+- check local installation for enabled php and loaded gd and mysql
+   extensions
+
+
 
 - Adapt man page to new options
 
+
+
+- Remove database.sql (the version in the site package should be used,
+   instead)
+
+
+ 
+
+- execdir - manage symlinks for the binaries in every site or/and in a
+   single directory (TYPO3 already uses /usr/local/php/bin in addition
+   to the ones provided by apache.conf)
+
+
+- i18n
+
+- test/adopt to other GNU/Linux distrubutions than Debian/Ubuntu
+
 - Port script to Win32 through an extension to the file system
-  operations so that they work operation system independent
+   operations so that they work operation system independent
 
-- Reenable the site installation feature: Move the remaining parts of
-  a BASH script to PHP load the required SQL from typo3.org (if Debian
-  package is not provided)
-
-- Remove database.sql (the version in the site package should be used, instead)
-
-- check for appropriate apache and php configuration  
 
