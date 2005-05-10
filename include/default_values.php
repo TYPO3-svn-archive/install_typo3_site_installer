@@ -2,7 +2,7 @@
 /***************************************************************
 *  Copyright notice
 *
-*  (c) 2004 Michael Stucki (michael@typo3.org)
+*  (c) 2005 Christian Leutloff <leutloff@debian.org>
 *  All rights reserved
 *
 *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -25,15 +25,41 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 /**
- * Base class for the TYPO3 site installer
+ * Default values used by the TYPO3 site installer
  *
  * $Id$
  *
- * @author	Michael Stucki <michael@typo3.org>
+ * @author	 Christian Leutloff <leutloff@debian.org>
+ *
  */
-class db_manager	{
-//	var $......;
-//	# Start here...
-}
+
+
+/**
+ * Default values
+ */
+define('DEFAULT_ROOT_DIR', '/');
+define('DEFAULT_TYPO3SOURCE_DIR', 'usr/share/typo3/');
+define('DEFAULT_DESTINATION_DIR', 'var/lib/typo3/');
+define('DEFAULT_WWW_USER', 'www-data');
+define('DEFAULT_WWW_GROUP', 'www-data');
+
+$defaulttemplate = array(
+    // localconf.php
+    'T3INST_INSTALLTOOLPASSWORD' => 'bacb98acf97e0b6112b1d1b650b84971', // Default password is "joh316" 
+    'T3INST_SITENAME' => 'Blank DUMMY',
+    // localconf.php + apache.conf
+    'T3INST_EXECDIR' => '/var/lib/typo3-dummy/execdir/',
+    // apache.conf - defaulthost 
+    'T3INST_URLDIR' => '/typo3/',
+    // apache.conf - virtualhost 
+    'T3INST_SERVERNAME' => 'typo3.localnet',
+    // apache.conf - virtualhost + defaulthost 
+    'T3INST_BASEDIR' => '/var/lib/typo3-dummy/',
+    'T3INST_T3SRCDIR' => '/usr/share/typo3/typo3_src-3.7/',
+    'T3INST_T3DBDIR' => '/usr/share/typo3-dummy/',
+    );
+
+
+
 
 ?>

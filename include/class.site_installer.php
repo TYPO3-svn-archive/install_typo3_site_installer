@@ -36,22 +36,6 @@
  * Scroll to the end to find the start of this script!
  */
 
-/**
- * Default values
- */
-define('DEFAULT_ROOT_DIR', '/');
-define('DEFAULT_TYPO3SOURCE_DIR', 'usr/share/typo3/');
-define('DEFAULT_DESTINATION_DIR', 'var/lib/typo3/');
-define('DEFAULT_WWW_USER', 'www-data');
-define('DEFAULT_WWW_GROUP', 'www-data');
-
-$defaulttemplate = array(
-    'T3INST_INSTALLTOOLPASSWORD' => 'bacb98acf97e0b6112b1d1b650b84971', // Default password is "joh316" 
-    'T3INST_SITENAME' => 'Blank DUMMY',
-    '' => '',
-    '' => '',
-    '' => '',
-    )
 
 /**
  * helper function: ensure that dirs ends with a slash
@@ -74,9 +58,9 @@ class site_installer	{
 	// TODO: We could also grep through httpd.conf in case that this name was changed
 	// wwwgroup=`cat /etc/apache/httpd.conf | grep "^[Gg]roup\ [^\ ]*$" | awk '{ print $NF; }'`
 
-	var $rootDir = "";		// root directory used to operate -another than the standard / is useful in chroot environments and to test different directory szenarios
-	var $typo3SourceDir  = "";	// directory with the typo3 source
-	var $destinationDir = "";	// web directory where typo3 will be installed and used
+	var $rootDir = '';		// root directory used to operate -another than the standard / is useful in chroot environments and to test different directory szenarios
+	var $typo3SourceDir  = '';	// directory with the typo3 source
+	var $destinationDir = '';	// web directory where typo3 will be installed and used
 	var $fixPermissions = false;	// if true, permissions and links will be modified
 	var $useAlwaysLatest = false;	// if true, symlink to typo3_src will be changed to use latest available typo3_src
 	var $wwwuser = DEFAULT_WWW_USER;	// name of the user that runs the Apache webserver
@@ -84,7 +68,12 @@ class site_installer	{
 	var $errors = 0;		// count errors during startup
 	var $errmsg = "";		// display message if errors are detected
 	var $dryrun = false;		// dryrun shows the actions that would be done
-
+            
+	function getVersion()	{
+            //return '$Revision$';
+            return '0.90';
+	}
+    
 	function setAlwaysLatest($value)	{
 		$this->useAlwaysLatest=$value;
 	}
@@ -118,7 +107,7 @@ class site_installer	{
 	}
     
 	function getSourceDir()	{
-		return $this->sourceDir;
+		return $this->typo3SourceDir;
 	}
 
 
@@ -126,6 +115,11 @@ class site_installer	{
 		$this->rootDir = getDirWithFinalSlash($value);
 		$this->debug(1, 'setRootDir root dir: '.$this->rootDir.'--'.$value."\n");
 	}
+    
+	function getRootDir()	{
+		return $this->rootDir;
+	}
+
 
 	function setDryRun($value)	{
 		if ($value === false) $this->dryrun = false;
@@ -147,7 +141,6 @@ class site_installer	{
 
 		if (! is_dir($this->rootDir)) {
 			$this->error('Root Dir is not a directory ('.$this->rootDir.')');
-			$this->errors++;
 		}
 
 			// determine source dir of TYPO3
@@ -172,29 +165,34 @@ class site_installer	{
 			$this->error('Could not find the Typo3 Source Directory (last tried was: '.
 				$this->typo3SourceDir.'! '.
 				'The option -s could be used to provide a hint.');
-			$this->errors++;
 		}
 
 		/*
-		 * We always use /var/lib/typo3/latest to get the version number that will be used for installation
-		 * Check if /var/lib/typo3/latest is a symlink
+		 * Uses /usr/share/typo3/latest and
+		 * /var/lib/typo3/latest as default/backup solution to get the
+		 * version number that will be used for installation.
 		 */
 		if (is_link($this->typo3SourceDir.'latest')) {
 				// Get the current version which will be used by default
 				// $TYPO3_SOURCE=`ls -l /var/lib/typo3/latest | awk '{ print $NF; }'`;
-			$this->typo3SourceDir = readlink($this->typo3SourceDir.'latest');
-
+                        $this->setSourceDir(readlink($this->typo3SourceDir.'latest'));
+                        if ($this->typo3SourceDir[0] !== '/')  // relative link
+                            $this->setSourceDir($this->getRootDir().$this->typo3SourceDir);
+                
+                        echo ' $this->typo3SourceDir: ', $this->typo3SourceDir;
+                        
+				// Maybe /var/lib/typo3/latest does not point to the absolute path
+			if (!file_exists($this->typo3SourceDir))	$this->typo3SourceDir = $this->rootDir.'var/lib/typo3/'.$this->typo3SourceDir;
 				// Maybe /var/lib/typo3/latest does not point to the absolute path
 			if (!file_exists($this->typo3SourceDir))	$this->typo3SourceDir = $this->rootDir.'var/lib/typo3/'.$this->typo3SourceDir;
 
 				// If the updated still doesn't exist: Abort.
-			if ( ! file_exists($this->typo3SourceDir))	$this->errors++;
+			if ( ! file_exists($this->typo3SourceDir))	$this->error('Could not find the TYPO3 Source Directory (last tried was: '.$this->typo3SourceDir.'! The option -s could be used to provide a hint.');
 		} else {
 
 			$this->error('Could not find the link to the latest TYPO3 Source Directory (last tried was: '.
 				$this->typo3SourceDir.'latest! '.
 				'The option -s could be used to provide a hint.');
-			$this->errors++;
 		}
 
 			// check for permissions to change owner/mod root
@@ -203,12 +201,11 @@ class site_installer	{
 				'You are not logged in as root'."\n".
 				'It will not be possible to change the group ownership to '.$this->wwwgroup."\n".
 				'=============================================================================='."\n\n");
-			$this->errors++;
 		}
 	}
 
 	/**
-	 * abort the script with error message
+	 * abort the script with error message.
 	 */
 	function abortIfErrors()	{
 		echo $this->errmsg;
@@ -220,23 +217,32 @@ class site_installer	{
 	}
 
 	/**
-	 * check and fix destination dir
+	 * check and fix destination directory name.
+         * @param expected to be there or not
+         * @return is found as expected or not 
 	 */
-	function checkDestinationDir()	{
+	function checkDestinationDir($expected)	{
 		if (empty($this->destinationDir) || ($this->destinationDir == "")) {
 			$this->info('using Default Destination Dir ('.$this->rootDir.DEFAULT_DESTINATION_DIR.')');
 			$this->destinationDir = $this->rootDir.DEFAULT_DESTINATION_DIR;
 		}
 
-		if (! is_dir($this->destinationDir)) {
-			$this->error('Destination Directory '.$this->destinationDir.' is not a directory or missing at all.');
-			$this->errors++;
-		}
+		if (!is_dir($this->getDestinationDir())) {
+                    if ($expected) {
+			$this->error('Destination Directory '.$this->getDestinationDir().' is not a directory or missing at all.');
+                        return false;
+                    }
+		} else {
+                    if (!$expected) {
+                        $this->error('Directory '.$this->getDestinationDir().' already exists! Please move it out the way.');
+                        return false;
+                    }
+		}            
 
-		if ( ! file_exists( $this->destinationDir.'index.php')) {
+		if ( ! file_exists( $this->getDestinationDir().'index.php')) {
+                    if  ($expected) {
 			$this->error('Site seems to be incorrect (missing '.
-				$this->destinationDir.'index.php)!');
-			$this->errors++;
+				$this->getDestinationDir().'index.php)!');
 
 			$this->info('The directory you tried to use was:'."\n".
 				$this->getDestinationDir()."\n\n".
@@ -244,109 +250,191 @@ class site_installer	{
 				'Use this command to do so:'."\n".
 				'  typo3-site-installer -d '.$this->destinationDir."\n\n".
 				'If you think this is a bug, please contact the author.'."\n".
-				'=============================================================================='."\n");
+                                    '=============================================================================='."\n");
+                        return false;
+                    }
 		}
+                // Test if directory is writable
+                if (!$expected && !is_writable(dirname($this->getDestinationDir())))  {
+                    $this->error('Directory '.dirname($this->getDestinationDir()).' is not writeable!');
+                    return false;
+                }
+                return true;
 	}
 
+
+    
+    
 	/**
-	 * Install a clean dummysite
+	 * Make directory and install template/index.html to redirect
+         * a browser one level up.
 	 */
-	function install_site()	{
-/*
-    // Test if directory is writable
-    if [ -w `dirname $this->getDestinationDir()` ]; then
-
-        // Test if target directory already exists (may also be a file)
-        if [ -e $this->getDestinationDir() ]; then
-
-            echo
-            '=============================================================================="
-            'Directory $this->getDestinationDir() exists!"
-            '=============================================================================="
-            echo
-            'Aborted."
-            exit 1
-
-        fi
-
-        // Create the directory structure
-        mkdir $this->getDestinationDir()
-        mkdir $this->getDestinationDir()/fileadmin
-        mkdir $this->getDestinationDir()/fileadmin/_temp_
-        mkdir $this->getDestinationDir()/fileadmin/user_upload
-        mkdir $this->getDestinationDir()/fileadmin/user_upload/_temp_
-        mkdir $this->getDestinationDir()/typo3conf
-        mkdir $this->getDestinationDir()/typo3conf/ext
-        mkdir $this->getDestinationDir()/typo3temp
-        mkdir $this->getDestinationDir()/uploads
-        mkdir $this->getDestinationDir()/uploads/dmail_att
-        mkdir $this->getDestinationDir()/uploads/media
-        mkdir $this->getDestinationDir()/uploads/pics
-        mkdir $this->getDestinationDir()/uploads/tf
-
-        // Create index.html for directories that should not be shown
-        cat <<EOF > $this->getDestinationDir()/uploads/index.html
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
-    <TITLE></TITLE>
-    <META http-equiv=Refresh Content="0; Url=../">
-</HEAD>
-</HTML>
-EOF
-
-        // Create a symlink to this file in every subdirectory
-        cp $this->getDestinationDir()/uploads/index.html $this->getDestinationDir()/uploads/dmail_att/
-        cp $this->getDestinationDir()/uploads/index.html $this->getDestinationDir()/uploads/media/
-        cp $this->getDestinationDir()/uploads/index.html $this->getDestinationDir()/uploads/pics/
-        cp $this->getDestinationDir()/uploads/index.html $this->getDestinationDir()/uploads/tf/
-        cp $this->getDestinationDir()/uploads/index.html $this->getDestinationDir()/typo3conf/
-
-        // Copy some other files from /usr/share/doc/typo3-site-installer
-        cp /usr/share/doc/typo3-site-installer/_.htaccess $this->getDestinationDir()/
-        cp /usr/share/doc/typo3-site-installer/clear.gif $this->getDestinationDir()/
-        gunzip -c /usr/share/doc/typo3-site-installer/changelog.gz > $this->getDestinationDir()/changelog
-        gunzip -c /usr/share/doc/typo3-site-installer/database.sql.gz > $this->getDestinationDir()/typo3conf/database.sql
-
-        // Copy the localconf.php into typo3conf/
-        cp /usr/share/doc/typo3-base/examples/localconf.php $this->getDestinationDir()/typo3conf/
-
-        // Create a few symlinks
-        ln -s $TYPO3_SOURCE $this->getDestinationDir()/typo3_src
-        ln -s typo3_src/tslib $this->getDestinationDir()/
-        ln -s typo3_src/t3lib $this->getDestinationDir()/
-        ln -s typo3_src/typo3 $this->getDestinationDir()/
-        ln -s tslib/media $this->getDestinationDir()/
-        ln -s tslib/showpic.php $this->getDestinationDir()/
-        ln -s tslib/index_ts.php $this->getDestinationDir()/index.php
-
-
-    else
-
-        echo
-        '=============================================================================="
-        'Error: The target directory cannot be created."
-        'Please check your settings."
-        'Note that the parent directory needs to be existing!"
-        '=============================================================================="
-        echo
-        'Aborted."
-        exit 1
-
-    fi
-*/
+        function makeDirectory($theDir, $testonly) {
+            global $TEMPLATE_DIR;
+            
+            if (file_exists($theDir)) {
+                if ($testonly === true) return false;
+                else {
+                    $this->error('Site seems to be incorrect (missing '.
+                                 $this->destinationDir.'index.php)!');
+                    return false;
+                }
+            }
+            if ($this->dryrun == true) {
+                $this->info('mkdir '.$theDir);
+            } else {
+                if (!mkdir($theDir)) {
+                    $this->error('mkdir '.$theDir.' failed!');
+                    return false;
+                }
+            }
+            $this->copyToDir($TEMPLATE_DIR.'index.html', $theDir);
+            return true;
         }
     
-
+    
 	/**
-	 * fix symlinks
+	 * Create the directory structure
 	 */
-	function fixSymlinks()	{
-		/*
-			// Point typo3_src to /var/lib/typo3/latest
-		if [ $useAlwaysLatest == 1 ]; then $TYPO3_SOURCE=/usr/share/typo3/latest; fi
-		*/
-	}
+	function createDirectoryStructure()	{
+            $this->debug(1, 'createDirectoryStructure');
+            $subdirs = array(
+                $this->getDestinationDir(),
+                $this->getDestinationDir().'fileadmin/',
+                $this->getDestinationDir().'fileadmin/_temp_/',
+                $this->getDestinationDir().'fileadmin/user_upload/',
+                $this->getDestinationDir().'fileadmin/user_upload/_temp_/',
+                $this->getDestinationDir().'typo3conf/',
+                $this->getDestinationDir().'typo3conf/ext/',
+                $this->getDestinationDir().'typo3temp/',
+                $this->getDestinationDir().'uploads/',
+                $this->getDestinationDir().'uploads/dmail_att/',
+                $this->getDestinationDir().'uploads/media/',
+                $this->getDestinationDir().'uploads/pics/',
+                $this->getDestinationDir().'uploads/tf/',
+                );
+            foreach ($subdirs as $key => $subdir) {   
+                $this->makeDirectory($subdir, false);
+            }
+        }
+    
+	/**
+	 * Create a few symbolic links
+	 */
+        function createSymbolicLinks() {
+            $this->debug(1, 'createSymbolicLinks');
+            $errorsfound = false;
+            $links = array(
+                $this->getSourceDir() => 'typo3_src',
+                'typo3_src/tslib' => 'tslib',
+                'typo3_src/t3lib' => 't3lib',
+                'typo3_src/typo3' => 'typo3',
+                'tslib/media' => 'media',
+                'tslib/showpic.php' => 'showpic.php',
+                'tslib/index_ts.php' => 'index.php',
+                );
+            if ($this->dryrun !== true) chdir($this->getDestinationDir());
+            else $this->info('cd '.$this->getDestinationDir());
+            foreach ($links as $link => $orig) {   
+                if (!file_exists($link)) {
+                    if ($this->dryrun === false) {
+                        $this->error('Failed: '.$link.' is missing!');
+                        $errorsfound = true;
+                    } else {
+                        $this->info($link.' may be missing!');
+                    }
+                    continue;
+                }
+		if ($this->dryrun === true) {
+                    $this->info('ln -s '.$link.' '.$orig);
+		} else {
+                    if (!symlink($link, $orig))
+                        $this->error('Failed: ln -s '.$link.' '.$orig);
+                }
+            }
+            if ($errorsfound)
+                return false;
+            return true;
+        }
+    
+        /**
+         * Copy file to the dir
+         */
+        function copyToDir($copyfrom, $dir) {
+            $filename = basename($copyfrom);
+            $this->debug(2, 'copyToDir: cp '.$copyfrom.' '.$dir.$filename);
+            if (!is_file($copyfrom)) {
+                $this->error('Failed: '.$copyfrom.' is missing or not a file!');
+                return false;
+            }
+            if (!is_dir($dir) && ($this->dryrun === false)) {
+                $this->error('Failed: '.$dir.' is missing or not a directory!');
+                return false;
+            }
+            if ($this->dryrun == true) {
+                $this->info('cp '.$copyfrom.' '.$dir.$filename);
+            } else {
+                if (!copy($copyfrom, $dir.$filename)) {
+                    $this->error('Failed: cp '.$copyfrom.' '.$dir.$filename);
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+    
+        /**
+         * Create the localconf.php from the template file
+         */
+        function createLocalConf() {
+            $this->info( "createLocalConf FIXME");
+            
+        }
+    
+        /**
+         * Create the database in a given MySQL installation
+         */
+        function createMySQLDB() {
+            $this->info("createMySQLDB FIXME");
+            
+            // FIXME - create mysql DB
+            // FIXME - build links to all databases?? - or better
+            //directly import them to T3 database
+            //gunzip -c /usr/share/doc/typo3-site-installer/database.sql.gz > $this->getDestinationDir()/typo3conf/database.sql
+        }
+    
+        /**
+         * Create the apache configuration file
+         */
+        function createApacheConf() {
+            $this->info("createApacheConf FIXME");
+            // FIXME - create apache.conf
+            
+            
+        }
+
+    
+	/**
+	 * Install a clean (dummy)site
+	 */
+	function install_site()	{
+            global $TEMPLATE_DIR;
+
+            $this->abortIfErrors();
+            $this->info('Install new site to '.$this->getDestinationDir());
+            
+            $this->createDirectoryStructure();
+            $this->createSymbolicLinks();
+                
+            // Copy some other files from the template dir
+            $this->copyToDir($TEMPLATE_DIR.'clear.gif', $this->getDestinationDir());
+            $this->copyToDir($TEMPLATE_DIR.'favicon.ico', $this->getDestinationDir());
+
+            $this->createLocalConf($this->getDestinationDir().'typo3conf/localconf.php');
+            $this->createMySQLDB();
+            $this->createApacheConf();
+        }
+    
 
 	/**
 	 * search trough the directory including the sub directories and set
@@ -570,13 +658,11 @@ EOF
 	 * fix some permissions
 	 */
 	function fix_permissions()	{
-		$this->checkDestinationDir();
 		$this->abortIfErrors();
 
-		$this->debug(0, 'User is ',$_ENV['USER'],"\n");
+		$this->debug(1, 'User is ',$_ENV['USER'],"\n");
 
 		if (($_ENV['USER'] === 'root') || ($this->dryrun == true)) {
-
 			/*
 			chgrp -R $wwwgroup $this->getDestinationDir()
 			find $this->getDestinationDir() -type f -exec chmod 640 {} \;
@@ -597,15 +683,6 @@ EOF
 			if (file_exists($this->getDestinationDir().'changelog'))	$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
 
 		} else {
-
-			/*
-			find $this->getDestinationDir() -type f -exec chmod 666 {} \;
-			find $this->getDestinationDir() -type d -exec chmod 777 {} \;
-			chmod 600 $this->getDestinationDir()/changelog
-			*/
-			$this->setDirFileModeRecursive($this->getDestinationDir(), 0777, 0666);
-			if (file_exists($this->getDestinationDir().'changelog'))	$this->setFileMode($this->getDestinationDir(), 'changelog', 0600, 0600);
-
 			$this->info('=============================================================================='."\n".
 				'You are not logged in as root.'."\n".
 				'It was not possible to change the ownership to '.
@@ -653,6 +730,8 @@ EOF
 	 */
 	function error($msg)	{
 		$this->errmsg .= 'ERROR: '.$msg."\n";
+                $this->errors++;
+
 	}
 
 	/**
@@ -679,27 +758,35 @@ EOF
 	}
 
     
-       /**
+        /**
+	 * check for neccessary directory, depending on the selected action
+	 */
+	function checkPrerequisitsForActions()	{
+		if ($this->fixPermissions) {
+                        // install dir must be available
+			$this->checkDestinationDir(true);
+		} else {
+                        // install dir must not be available
+			$this->checkDestinationDir(false);
+		}
+        }
+    
+        /**
 	 * execute the necesssary functions - main method
 	 */
 	function doActions()	{
+		/* TODO: Run the site fetcher
+		require($INCLUDE_DIR.'class.site_fetcher.php');
+		$fetcher = new site_fetcher;
+		$res = $fetcher->fetch_site('3.6.2', 'dummy');
+		*/
 		if ($this->fixPermissions) {
 			$this->fix_permissions();
 		} else {
 			$this->install_site();
-			$this->fix_permissions();
+                        if ($this->dryrun !== true)	$this->fix_permissions();
+                        else $this->info('Setting file and directory permissions can not be demonstrated before installing the files.');
 		}
-
-		/*
-		 * Todo: Run the site fetcher
-		 *
-
-		require($INCLUDE_DIR.'class.site_fetcher.php');
-		$fetcher = new site_fetcher;
-		$res = $fetcher->fetch_site('3.6.2', 'dummy');
-
-cat /usr/src/typo3-testsite-3.7.0/debian/append2localconf.php | sed -e 's/typo3-testsite/typo3-quickstart/g' > debian/append2localconf.php
-		*/
 		$this->abortIfErrors();
 	}
 

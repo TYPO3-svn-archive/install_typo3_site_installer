@@ -36,36 +36,41 @@
  * @author	Sven Wilhelm <wilhelm@icecrash.com>
  * @author	Michael Stucki <michael@typo3.org>
  */
-//$debug = 2; error_reporting(E_ALL);
-$debug = 0; error_reporting(E_NONE);
+$debug = 1; error_reporting(E_ALL);
+//$debug = 0; error_reporting(E_NONE);
 
 
 require_once('Console/Getopt.php');
 
-// FIXME get actual path from the environment and set the include dir
-// correctly
-$INCLUDE_DIR = 'include/';
-if (!file_exists($INCLUDE_DIR.'class.site_installer.php')) {
-    	$INCLUDE_DIR = dirname($_SERVER['SCRIPT_FILENAME']).'/include/';
-    	if (!file_exists($INCLUDE_DIR.'class.site_installer.php')) {
-            	$INCLUDE_DIR = '/usr/share/typo3-site-installer/';
-                if (!file_exists($INCLUDE_DIR.'class.site_installer.php')) die('Could not determine the path to include class.site_installer.php!!'."\n");
+
+$SCRIPTBASE_DIR = getcwd();
+if (substr($SCRIPTBASE_DIR, strlen($SCRIPTBASE_DIR)-1, strlen($SCRIPTBASE_DIR)) != '/') $SCRIPTBASE_DIR .= '/';
+if (!file_exists($SCRIPTBASE_DIR.'include/class.site_installer.php')) {
+    	$tmpdir = dirname($_SERVER['SCRIPT_FILENAME']) . '/';
+        if ($tmpdir[0] === '/') $SCRIPTBASE_DIR = $tmpdir;
+        else $SCRIPTBASE_DIR .= $tmpdir;
+    	if (!file_exists($SCRIPTBASE_DIR.'include/class.site_installer.php')) {
+            	$SCRIPTBASE_DIR = '/usr/share/typo3-site-installer/';
+                if (!file_exists($SCRIPTBASE_DIR.'include/class.site_installer.php')) die('Could not determine the path to include class.site_installer.php!!'."\n");
         }
 }
+$INCLUDE_DIR = $SCRIPTBASE_DIR.'include/';
+$TEMPLATE_DIR = $SCRIPTBASE_DIR.'templates/';
 
+	// Include the default values
+require($INCLUDE_DIR.'default_values.php');
 	// Include the base class and start
 require($INCLUDE_DIR.'class.site_installer.php');
-
 
 /**
  * Display version info
  */
 function printVersion()	{
-	global $debug;
+	global $debug, $siteInstaller;
 
 	echo "\n";
-	echo 'typo3-site-installer, v0.91, 06.05.05' ;
-	if ($debug > 0)	echo ", Debugging enabled";
+	echo 'typo3-site-installer, v0.92, 09.05.05';
+	if ($debug > 0)	echo ', Debugging enabled (site_installer v'.$siteInstaller->getVersion().')';
 	echo "\n";
 }
 
@@ -220,6 +225,7 @@ $siteInstaller = new site_installer;
 parseOptions(&$siteInstaller);
 
 $siteInstaller->startUpCheck();
+$siteInstaller->checkPrerequisitsForActions();
 $siteInstaller->doActions();
 
 ?>
